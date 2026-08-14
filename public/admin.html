@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master PC Admin Dashboard | Fintech Hub</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- QRCode JS Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --sidebar-bg: #1e1e2d;
+      --sidebar-hover: #2b2b40;
+      --sidebar-text: #a2a3b7;
+      --sidebar-active: #ff6600;
+      --bg-page: #f4f5f8;
+      --bg-card: #ffffff;
+      --primary-orange: #ff6600;
+      --primary-hover: #e65c00;
+      --text-dark: #181c32;
+      --text-muted: #b5b5c3;
+      --border-color: #ebedf3;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-card: 0 0 20px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg-page); color: var(--text-dark); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+    /* AUTH LOCK SCREEN */
+    #adminAuthScreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #151521; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .auth-box { background: #1e1e2d; border: 1px solid #2b2b40; border-radius: var(--radius-lg); padding: 3rem 2.5rem; width: 440px; text-align: center; color: #fff; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .auth-icon { width: 70px; height: 70px; background: rgba(255, 102, 0, 0.15); color: var(--primary-orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 1.2rem auto; }
+    .auth-box h2 { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 800; }
+    .auth-box p { color: var(--sidebar-text); font-size: 0.88rem; margin: 6px 0 1.5rem 0; }
+    .form-input { width: 100%; padding: 12px 16px; background: #151521; border: 1px solid #2b2b40; border-radius: var(--radius-md); color: #fff; font-size: 0.95rem; outline: none; transition: 0.2s; }
+    .form-input:focus { border-color: var(--primary-orange); }
+    .btn-orange-full { width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6600, #e65c00); color: #fff; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
+
+    /* LAYOUT SHELL */
+    .admin-wrapper { display: flex; width: 100%; }
+
+    /* LEFT SIDEBAR */
+    .admin-sidebar { width: 260px; background-color: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 100; }
+    .sidebar-brand { padding: 1.5rem 1.8rem; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2b2b40; }
+    .sidebar-brand-icon { width: 38px; height: 38px; background: var(--primary-orange); color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .sidebar-brand h2 { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; }
+    .sidebar-brand h2 span { color: var(--primary-orange); }
+
+    .sidebar-menu { list-style: none; padding: 1.5rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .menu-header { color: #565674; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 10px 12px 4px 12px; letter-spacing: 0.8px; }
+    .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--sidebar-text); border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
+    .menu-item:hover, .menu-item.active { background-color: var(--sidebar-hover); color: #fff; }
+    .menu-item.active { background: linear-gradient(90deg, rgba(255, 102, 0, 0.2), transparent); color: var(--primary-orange); border-left: 4px solid var(--primary-orange); }
+    .menu-item i { font-size: 1.1rem; width: 20px; text-align: center; }
+
+    .sidebar-footer { padding: 1.2rem 1.5rem; border-top: 1px solid #2b2b40; }
+    .btn-lock { width: 100%; padding: 10px; background: #2b2b40; color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    /* MAIN CONTENT AREA */
+    .admin-main { flex: 1; margin-left: 260px; display: flex; flex-direction: column; min-height: 100vh; }
+    
+    .admin-header { background: var(--bg-card); padding: 1rem 2rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 90; }
+    .header-title h1 { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .status-badge { background: #e8fff3; color: #50cd89; border: 1px solid #c7f2da; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
+    .dot-live { width: 8px; height: 8px; background: #50cd89; border-radius: 50%; }
+
+    .content-body { padding: 2rem; flex: 1; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* METRICS GRID */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+    .metric-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: space-between; }
+    .metric-data span { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .metric-data h2 { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 800; margin-top: 4px; }
+    .metric-icon { width: 50px; height: 50px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    .icon-orange { background: #fff4ed; color: var(--primary-orange); }
+    .icon-blue { background: #f1f5f9; color: #3b82f6; }
+    .icon-green { background: #e8fff3; color: #50cd89; }
+    .icon-yellow { background: #fff8dd; color: #f1416c; }
+
+    /* DATA TABLES & CARDS */
+    .card-panel { background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-card); overflow: hidden; margin-bottom: 2rem; }
+    .panel-header { padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+    .panel-header h3 { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; }
+    
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .table { width: 100%; border-collapse: collapse; text-align: left; }
+    .table th { background: #f9f9fc; padding: 14px 18px; color: #b5b5c3; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+    .table td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+    .table tr:hover { background-color: #fcfcfd; }
+
+    /* BUTTONS & BADGES */
+    .btn { padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-primary { background: var(--primary-orange); color: #fff; }
+    .btn-secondary { background: #f3f4f6; color: var(--text-dark); }
+    .btn-success { background: #50cd89; color: #fff; }
+    .btn-danger { background: #f1416c; color: #fff; }
+    
+    .badge { padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; display: inline-block; }
+    .badge-success { background: #e8fff3; color: #50cd89; }
+    .badge-warning { background: #fff8dd; color: #ffc700; }
+    .badge-danger { background: #fff5f8; color: #f1416c; }
+    .badge-info { background: #dbeafe; color: #1d4ed8; }
+
+    /* FORMS */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-group label { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
+    .form-control { padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; outline: none; width: 100%; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* MODAL */
+    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: #fff; width: 520px; max-width: 90%; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- ADMIN AUTH LOCK SCREEN -->
+  <div id="adminAuthScreen">
+    <div class="auth-box">
+      <div class="auth-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <h2>Master Admin Portal</h2>
+      <p>Enter administrator passcode to access full system controls.</p>
+      <form id="formAuthLogin">
+        <input type="password" id="authPassword" class="form-input text-center" placeholder="Passcode (admin123)" required>
+        <button type="submit" class="btn-orange-full">Authenticate Master Admin</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN SHELL -->
+  <div class="admin-wrapper" id="adminShell" style="display: none;">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon"><i class="fa-solid fa-user-shield"></i></div>
+        <h2>FINTECH<span>ADMIN</span></h2>
+      </div>
+
+      <ul class="sidebar-menu">
+        <li class="menu-header">Core Dashboard</li>
+        <li class="menu-item active" data-tab="overview"><i class="fa-solid fa-chart-pie"></i> Overview & Stats</li>
+        <li class="menu-header">User Management</li>
+        <li class="menu-item" data-tab="users"><i class="fa-solid fa-users"></i> Users Database</li>
+        <li class="menu-item" data-tab="orders"><i class="fa-solid fa-money-bill-transfer"></i> Deposit & Sell Orders</li>
+        <li class="menu-item" data-tab="wallets"><i class="fa-solid fa-wallet"></i> User Payment Tools</li>
+        <li class="menu-header">Communications & Offers</li>
+        <li class="menu-item" data-tab="notifications"><i class="fa-regular fa-bell"></i> Broadcast Notifications</li>
+        <li class="menu-item" data-tab="offers"><i class="fa-solid fa-tags"></i> Payment Claim Offers</li>
+        <li class="menu-header">Platform Config</li>
+        <li class="menu-item" data-tab="rates"><i class="fa-solid fa-sliders"></i> System Rates & Settings</li>
+        <li class="menu-item" data-tab="logs"><i class="fa-solid fa-shield-cat"></i> Security Audit Logs</li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button class="btn-lock" id="btnLockAdmin"><i class="fa-solid fa-lock"></i> Lock Session</button>
+      </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="admin-main">
+      
+      <!-- TOP HEADER -->
+      <header class="admin-header">
+        <div class="header-title">
+          <h1 id="pageTitleHeading">Dashboard Overview</h1>
+        </div>
+        <div class="header-right">
+          <div class="status-badge"><span class="dot-live"></span> Master Admin Mode</div>
+          <span style="font-size:0.88rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay">14/08/2026</span>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <div class="content-body">
+        
+        <!-- MODULE 1: OVERVIEW -->
+        <div id="tab-overview" class="tab-view active">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-data">
+                <span>Total Users</span>
+                <h2 id="mUsers">0</h2>
+              </div>
+              <div class="metric-icon icon-orange"><i class="fa-solid fa-users"></i></div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-data">
+                <span>Total Platform Capital</span>
+                <h2 id="mCapital">₹ 0.00</h2>
+              </div>
+              <div class="metric-icon icon-green"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-data">
+                <span>Pending Approvals</span>
+                <h2 id="mPending" class="text-orange">0</h2>
+              </div>
+              <div class="metric-icon icon-yellow"><i class="fa-solid fa-clock"></i></div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-data">
+                <span>INR/USDT Rate</span>
+                <h2 id="mRate">110</h2>
+              </div>
+              <div class="metric-icon icon-blue"><i class="fa-solid fa-coins"></i></div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3>Master Admin Quick Controls</h3>
+            </div>
+            <div style="padding: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btnQuickAddUser"><i class="fa-solid fa-user-plus"></i> + Add New User Account</button>
+              <button class="btn btn-primary" id="btnQuickCreateOrder"><i class="fa-solid fa-plus-circle"></i> + Create Manual Order</button>
+              <button class="btn btn-secondary" id="btnQuickBroadcastNotif"><i class="fa-regular fa-bell"></i> Broadcast Notification</button>
+              <button class="btn btn-secondary" id="btnQuickNewOffer"><i class="fa-solid fa-plus"></i> + Create Claim Offer</button>
+              <button class="btn btn-secondary" id="btnQuickRates"><i class="fa-solid fa-sliders"></i> Update Rates & Maintenance</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 2: USERS MANAGEMENT DATABASE -->
+        <div id="tab-users" class="tab-view">
+          <div class="card-panel">
+            <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+              <h3>User Accounts Database (Full Control)</h3>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="searchUsersInput" class="form-control" placeholder="Search by name, ID, phone..." style="width: 220px; padding: 6px 12px;">
+                <button class="btn btn-primary" id="btnOpenAddUserModal"><i class="fa-solid fa-user-plus"></i> + Add User</button>
+                <button class="btn btn-secondary" id="btnExportUsersCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Name</th>
+                    <th>Mobile Phone</th>
+                    <th>Password</th>
+                    <th>Available Balance</th>
+                    <th>Score Points</th>
+                    <th>Status</th>
+                    <th>Master Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 3: PENDING DEPOSIT & SELL ORDERS MANAGEMENT -->
+        <div id="tab-orders" class="tab-view">
+          <div class="card-panel">
+            <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+              <h3>Deposit & Sell Orders Control Center</h3>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="searchOrdersInput" class="form-control" placeholder="Search order ID or User..." style="width: 180px; padding: 6px 12px;">
+                <select id="filterOrderType" class="form-control" style="width: 120px; padding: 6px 12px;">
+                  <option value="ALL">All Types</option>
+                  <option value="Deposit">Deposit</option>
+                  <option value="Sell">Sell</option>
+                </select>
+                <button class="btn btn-primary" id="btnOpenCreateOrderModal"><i class="fa-solid fa-plus-circle"></i> + Create Order</button>
+                <button class="btn btn-secondary" id="btnExportOrdersCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>User (ID)</th>
+                    <th>Type</th>
+                    <th>Amount (₹)</th>
+                    <th>USDT</th>
+                    <th>UTR / Ref No.</th>
+                    <th>Current Status</th>
+                    <th>Time</th>
+                    <th>Master Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE: USER PAYMENT TOOLS / WALLETS -->
+        <div id="tab-wallets" class="tab-view">
+          <div class="card-panel">
+            <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+              <h3>User Payment Tools & Saved Wallets</h3>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="searchWalletsInput" class="form-control" placeholder="Search wallet or User..." style="width: 220px; padding: 6px 12px;">
+                <button class="btn btn-primary" id="btnOpenAddWalletModal"><i class="fa-solid fa-plus"></i> + Add Wallet</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Tool ID</th>
+                    <th>Tool / Bank Name</th>
+                    <th>Type / Category</th>
+                    <th>Account / Phone Number</th>
+                    <th>Account Holder</th>
+                    <th>Created Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminWalletsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE: BROADCAST NOTIFICATIONS MANAGER -->
+        <div id="tab-notifications" class="tab-view">
+          <div class="card-panel" style="max-width: 700px; margin-bottom: 2rem;">
+            <div class="panel-header">
+              <h3><i class="fa-regular fa-bell text-orange"></i> Broadcast Notification to Users</h3>
+            </div>
+            <form id="formAdminBroadcast" style="padding: 1.5rem;">
+              <div class="form-group">
+                <label>Notification Title</label>
+                <input type="text" id="notifTitle" class="form-control" placeholder="e.g. Daily Cashback Reward Available!" required>
+              </div>
+              <div class="form-group">
+                <label>Notification Message Body</label>
+                <textarea id="notifBody" class="form-control" rows="3" placeholder="Enter message text to display to all mobile app users..." required></textarea>
+              </div>
+              <div class="form-group">
+                <label>Type / Badge Category</label>
+                <select id="notifType" class="form-control">
+                  <option value="Reward">Reward / Bonus</option>
+                  <option value="Info">General Info</option>
+                  <option value="Warning">Warning Alert</option>
+                  <option value="System">System Update</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;"><i class="fa-solid fa-paper-plane"></i> Broadcast Notification Now</button>
+            </form>
+          </div>
+
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3>Notification Broadcast History</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Message Body</th>
+                    <th>Category</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="adminNotifsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 4: PAYMENT OFFERS -->
+        <div id="tab-offers" class="tab-view">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3>Payment Claim Offers</h3>
+              <button class="btn btn-primary" id="btnOpenNewOfferModal"><i class="fa-solid fa-plus"></i> + Create Offer</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Amount (∫)</th>
+                    <th>Income (₹)</th>
+                    <th>Special Bonus (∫)</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="offersTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 5: SYSTEM RATES & SCORE CONFIG -->
+        <div id="tab-rates" class="tab-view">
+          <div class="card-panel" style="max-width: 650px;">
+            <div class="panel-header">
+              <h3>System Rates & Score Configuration</h3>
+            </div>
+            <form id="formSystemRates" style="padding: 1.5rem;">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>INR/USDT Exchange Rate</label>
+                  <input type="number" id="rateExchange" class="form-control" value="110" required>
+                </div>
+                <div class="form-group">
+                  <label>Score Conversion Rate (INR per 100 PTS)</label>
+                  <input type="number" step="0.01" id="rateScore" class="form-control" value="10.00" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Commission Rate (%)</label>
+                <input type="number" step="0.01" id="rateCommission" class="form-control" value="4.00" required>
+              </div>
+
+              <div class="form-group margin-top-1">
+                <label><input type="checkbox" id="chkSpecialReward"> Special Reward Active (ON)</label>
+              </div>
+
+              <div class="form-group">
+                <label><input type="checkbox" id="chkSellingOpen"> Selling Active Status (OPEN)</label>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Merchant Business Name</label>
+                  <input type="text" id="rateMerchantName" class="form-control" value="Fintech Hub" placeholder="e.g. Fintech Hub">
+                </div>
+                <div class="form-group">
+                  <label>Merchant Deposit UPI ID (Receiving UPI)</label>
+                  <input type="text" id="rateAdminUpiId" class="form-control" value="8104229900@upi" placeholder="e.g. 8104229900@upi">
+                </div>
+              </div>
+
+              <!-- Admin Live QR Preview Box -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 1rem;">
+                <span style="font-size: 0.8rem; font-weight: 800; color: var(--primary-orange); display: block; margin-bottom: 6px;">
+                  <i class="fa-solid fa-qrcode"></i> Admin Merchant QR Code Preview
+                </span>
+                <img id="adminQrPreviewImg" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi%3A%2F%2Fpay%3Fpa%3D8104229900%40upi%26pn%3DFintech%2520Hub%26cu%3DINR" style="width: 150px; height: 150px; border-radius: 8px; border: 1px solid var(--orange-border);">
+                <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Dynamic UPI QR code automatically calculates user deposit amount.</span>
+              </div>
+
+              <div class="form-group">
+                <label>App Version String</label>
+                <input type="text" id="appVersionInput" class="form-control" value="v1.1.9">
+              </div>
+
+              <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- MODULE 6: LOGS -->
+        <div id="tab-logs" class="tab-view">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3>System Security Audit Logs</h3>
+              <button class="btn btn-secondary" id="btnExportLogsCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Event Details</th>
+                    <th>IP Address</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD NEW USER -->
+  <div class="modal-backdrop" id="modalAddUser">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-orange"></i> Add New User Account</h3>
+        <button style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalAddUser">&times;</button>
+      </div>
+      <form id="formAddUser">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Full User Name</label>
+            <input type="text" id="addName" class="form-control" placeholder="e.g. Amit Kumar" required>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Mobile Phone Number</label>
+              <input type="tel" id="addPhone" class="form-control" placeholder="e.g. 9876543210" required>
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="text" id="addPassword" class="form-control" placeholder="Account Password" value="123" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Custom User ID Code (Optional)</label>
+            <input type="text" id="addId" class="form-control" placeholder="e.g. 892301 (Auto-generated if empty)">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Initial Balance (₹)</label>
+              <input type="number" step="0.01" id="addBal" class="form-control" value="0.00">
+            </div>
+            <div class="form-group">
+              <label>Initial Score Points (PTS)</label>
+              <input type="number" id="addScore" class="form-control" value="500">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Initial Deposit (₹)</label>
+              <input type="number" step="0.01" id="addDep" class="form-control" value="0.00">
+            </div>
+            <div class="form-group">
+              <label>Account Status</label>
+              <select id="addStatus" class="form-control">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="BANNED">BANNED</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalAddUser">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create User Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT USER -->
+  <div class="modal-backdrop" id="modalEditUser">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-pen text-orange"></i> Edit User Profile & Credentials</h3>
+        <button style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalEditUser">&times;</button>
+      </div>
+      <form id="formEditUser">
+        <div class="modal-body">
+          <input type="hidden" id="editUidHidden">
+          
+          <div class="form-group">
+            <label><i class="fa-solid fa-user text-orange"></i> Full Name</label>
+            <input type="text" id="editName" class="form-control" placeholder="User Name" required>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label><i class="fa-solid fa-phone text-orange"></i> Mobile Phone Number</label>
+              <input type="tel" id="editPhone" class="form-control" placeholder="Mobile Number" required>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-key text-orange"></i> Account Password</label>
+              <input type="text" id="editPassword" class="form-control" placeholder="Change Password" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Available Balance (₹)</label>
+              <input type="number" step="0.01" id="editBal" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Score Points (PTS)</label>
+              <input type="number" id="editScore" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Deposit Total (₹)</label>
+              <input type="number" step="0.01" id="editDep" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Withdrawal Total (₹)</label>
+              <input type="number" step="0.01" id="editWith" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Commission Total (₹)</label>
+            <input type="number" step="0.01" id="editComm" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label>Credit Instant Bonus (₹)</label>
+            <input type="number" step="0.01" id="editBonus" class="form-control" placeholder="Optional bonus amount">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalEditUser">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Profile & Balances</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NEW OFFER -->
+  <div class="modal-backdrop" id="modalNewOffer">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-tag text-orange"></i> Create Claim Offer</h3>
+        <button style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalNewOffer">&times;</button>
+      </div>
+      <form id="formNewOffer">
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Amount (∫)</label>
+              <input type="number" id="offAmt" class="form-control" placeholder="e.g. 750" required>
+            </div>
+            <div class="form-group">
+              <label>Code</label>
+              <input type="text" id="offCode" class="form-control" placeholder="e.g. K92X1" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Income (₹)</label>
+              <input type="number" step="0.01" id="offInc" class="form-control" placeholder="e.g. 30.00" required>
+            </div>
+            <div class="form-group">
+              <label>Special Bonus (∫)</label>
+              <input type="number" step="0.01" id="offSpec" class="form-control" value="3.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="offCat" class="form-control">
+              <option value="100-300">100-300</option>
+              <option value="301-500">301-500</option>
+              <option value="501-1000">501-1000</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalNewOffer">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Offer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: QUICK ADJUST BALANCE (CREDIT / DEBIT) -->
+  <div class="modal-backdrop" id="modalAdjustBalance">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wallet text-orange"></i> Quick Adjust User Balance</h3>
+        <button style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalAdjustBalance">&times;</button>
+      </div>
+      <form id="formAdjustBalance">
+        <div class="modal-body">
+          <input type="hidden" id="adjUserId">
+          <div class="form-group">
+            <label>User Account</label>
+            <input type="text" id="adjUserNameDisplay" class="form-control" readonly style="background:#f1f5f9; font-weight:700;">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Action Type</label>
+              <select id="adjActionType" class="form-control" required>
+                <option value="add">+ Add / Credit Funds</option>
+                <option value="deduct">- Deduct / Debit Funds</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount (₹)</label>
+              <input type="number" step="0.01" id="adjAmount" class="form-control" placeholder="e.g. 500" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Reason / Audit Note</label>
+            <input type="text" id="adjReason" class="form-control" placeholder="e.g. Admin reward / Adjustment">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalAdjustBalance">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Balance Adjustment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MANUAL CREATE ORDER -->
+  <div class="modal-backdrop" id="modalCreateOrder">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-plus-circle text-orange"></i> Create Manual Order</h3>
+        <button style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalCreateOrder">&times;</button>
+      </div>
+      <form id="formCreateManualOrder">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Select Target User</label>
+            <select id="createOrderUserSelect" class="form-control" required></select>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Order Type</label>
+              <select id="createOrderType" class="form-control" required>
+                <option value="Deposit">Deposit (Buy Order)</option>
+                <option value="Sell">Sell (Withdrawal Order)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount (₹)</label>
+              <input type="number" step="0.01" id="createOrderAmount" class="form-control" placeholder="e.g. 1000" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Initial Status</label>
+              <select id="createOrderStatus" class="form-control" required>
+                <option value="Success">Success (Completed & Auto-Credited)</option>
+                <option value="Processing">Processing</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment Channel</label>
+              <input type="text" id="createOrderChannel" class="form-control" placeholder="e.g. UPI / Bank Transfer" value="Admin Manual Direct">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalCreateOrder">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Order Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN ADD USER WALLET / PAYMENT TOOL -->
+  <div class="modal-backdrop" id="modalAdminAddWallet">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wallet text-orange"></i> Add Wallet / Payment Tool for User</h3>
+        <button type="button" style="background:none; border:none; font-size:1.4rem; cursor:pointer;" data-close="modalAdminAddWallet">&times;</button>
+      </div>
+      <form id="formAdminAddWallet">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Target User Account</label>
+            <select id="adminWalletUserSelect" class="form-control" required></select>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Category Type</label>
+              <select id="adminWalletType" class="form-control" required>
+                <option value="Personal">Personal Wallet</option>
+                <option value="Business">Business Merchant Wallet</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment Tool / Provider</label>
+              <select id="adminWalletProvider" class="form-control" required>
+                <option value="Freecharge">Freecharge</option>
+                <option value="Mobikwik">Mobikwik</option>
+                <option value="Paytm">Paytm</option>
+                <option value="IndusPay">IndusPay</option>
+                <option value="BharatpeBiz">BharatpeBiz</option>
+                <option value="Paytm Business">Paytm Business</option>
+                <option value="PhonePe Business">PhonePe Business</option>
+                <option value="GooglePay Merchant">GooglePay Merchant</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Account Number / Phone / UPI ID</label>
+            <input type="text" id="adminWalletAddress" class="form-control" placeholder="e.g. 9876543210@paytm or Account No." required>
+          </div>
+          <div class="form-group">
+            <label>Account Holder Name</label>
+            <input type="text" id="adminWalletHolder" class="form-control" placeholder="e.g. Rajju" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalAdminAddWallet">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitAdminAddWallet">Add Wallet Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => AdminPortal.init());
+
+    const AdminPortal = {
+      state: {
+        isAuthenticated: false,
+        users: [],
+        orders: [],
+        offers: [],
+        notifs: [],
+        wallets: [],
+        logs: [],
+        overview: null
+      },
+
+      init() {
+        this.bindAuth();
+        this.bindMenu();
+        this.bindActions();
+      },
+
+      bindAuth() {
+        document.getElementById('formAuthLogin').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const password = document.getElementById('authPassword').value;
+
+          try {
+            const res = await fetch('/api/admin/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            this.state.isAuthenticated = true;
+            document.getElementById('adminAuthScreen').style.display = 'none';
+            document.getElementById('adminShell').style.display = 'flex';
+            await this.loadAll();
+          } catch (err) {
+            alert(err.message);
+          }
+        });
+
+        document.getElementById('btnLockAdmin').addEventListener('click', () => {
+          this.state.isAuthenticated = false;
+          document.getElementById('adminAuthScreen').style.display = 'flex';
+          document.getElementById('adminShell').style.display = 'none';
+          document.getElementById('authPassword').value = '';
+        });
+      },
+
+      bindMenu() {
+        document.querySelectorAll('.menu-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            const target = e.currentTarget;
+            target.classList.add('active');
+            const tabId = target.getAttribute('data-tab');
+
+            document.querySelectorAll('.tab-view').forEach(v => {
+              v.classList.toggle('active', v.id === `tab-${tabId}`);
+            });
+
+            document.getElementById('pageTitleHeading').textContent = target.textContent.trim();
+          });
+        });
+      },
+
+      async loadAll() {
+        await Promise.all([
+          this.loadOverview(),
+          this.loadUsers(),
+          this.loadOrders(),
+          this.loadWallets(),
+          this.loadNotifs(),
+          this.loadOffers(),
+          this.loadRates(),
+          this.loadLogs()
+        ]);
+      },
+
+      async loadOverview() {
+        const res = await fetch('/api/admin/overview');
+        const data = await res.json();
+        this.state.overview = data;
+
+        document.getElementById('mUsers').textContent = data.totalUsers;
+        document.getElementById('mCapital').textContent = `₹ ${data.totalBalance.toFixed(2)}`;
+        document.getElementById('mPending').textContent = data.pendingOrdersCount;
+        document.getElementById('mRate').textContent = data.exchangeRate;
+      },
+
+      async loadUsers() {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        this.state.users = users;
+        this.renderUsersTable();
+      },
+
+      renderUsersTable() {
+        const searchQuery = (document.getElementById('searchUsersInput')?.value || '').toLowerCase().trim();
+        let filtered = this.state.users;
+
+        if (searchQuery) {
+          filtered = filtered.filter(u => 
+            u.id.toLowerCase().includes(searchQuery) ||
+            u.name.toLowerCase().includes(searchQuery) ||
+            (u.phone && u.phone.includes(searchQuery))
+          );
+        }
+
+        const tbody = document.getElementById('usersTbody');
+        if (!tbody) return;
+
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No user accounts found matching query.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(u => `
+          <tr>
+            <td><strong>${u.id}</strong></td>
+            <td><strong>${u.name}</strong></td>
+            <td>${u.phone || '9876543210'}</td>
+            <td><code>${u.password || '123'}</code></td>
+            <td>
+              <strong style="color:var(--primary-orange);">₹ ${u.balance.toFixed(2)}</strong>
+              <div style="margin-top:4px; display:flex; gap:4px;">
+                <button class="btn btn-secondary btn-adj-fund" data-id="${u.id}" data-action="add" style="padding:2px 8px; font-size:0.72rem; color:#50cd89; font-weight:700;">+ Credit</button>
+                <button class="btn btn-secondary btn-adj-fund" data-id="${u.id}" data-action="deduct" style="padding:2px 8px; font-size:0.72rem; color:#f1416c; font-weight:700;">- Debit</button>
+              </div>
+            </td>
+            <td><span class="badge badge-warning">${u.scorePoints || 0} PTS</span></td>
+            <td>
+              <span class="badge ${u.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}">${u.status}</span>
+              <button class="btn btn-secondary btn-toggle-u-status" data-id="${u.id}" style="padding:2px 6px; font-size:0.7rem; margin-top:4px; display:block;">
+                ${u.status === 'ACTIVE' ? 'Freeze' : 'Activate'}
+              </button>
+            </td>
+            <td>
+              <button class="btn btn-secondary btn-edit-u" data-id="${u.id}"><i class="fa-solid fa-pen"></i> Edit</button>
+              <button class="btn btn-secondary btn-del-u" data-id="${u.id}"><i class="fa-solid fa-trash" style="color:#f1416c;"></i> Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.btn-adj-fund').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const uid = e.currentTarget.getAttribute('data-id');
+            const action = e.currentTarget.getAttribute('data-action');
+            const target = this.state.users.find(u => u.id === uid);
+            if (target) {
+              document.getElementById('adjUserId').value = target.id;
+              document.getElementById('adjUserNameDisplay').value = `${target.name} (${target.id}) - Current Bal: ₹${target.balance.toFixed(2)}`;
+              document.getElementById('adjActionType').value = action;
+              document.getElementById('modalAdjustBalance').classList.add('active');
+            }
+          });
+        });
+
+        tbody.querySelectorAll('.btn-toggle-u-status').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const uid = e.currentTarget.getAttribute('data-id');
+            await fetch('/api/admin/users/toggle-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: uid })
+            });
+            await this.loadUsers();
+          });
+        });
+
+        tbody.querySelectorAll('.btn-edit-u').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const uid = e.currentTarget.getAttribute('data-id');
+            const target = this.state.users.find(u => u.id === uid);
+            if (target) {
+              document.getElementById('editUidHidden').value = target.id;
+              document.getElementById('editName').value = target.name;
+              document.getElementById('editPhone').value = target.phone || '9876543210';
+              document.getElementById('editPassword').value = target.password || '123';
+              document.getElementById('editBal').value = target.balance;
+              document.getElementById('editScore').value = target.scorePoints || 0;
+              document.getElementById('editDep').value = target.deposit;
+              document.getElementById('editWith').value = target.withdrawal;
+              document.getElementById('editComm').value = target.commission;
+              document.getElementById('modalEditUser').classList.add('active');
+            }
+          });
+        });
+
+        tbody.querySelectorAll('.btn-del-u').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const uid = e.currentTarget.getAttribute('data-id');
+            if (confirm(`Delete user ${uid}?`)) {
+              await fetch(`/api/admin/users/${uid}`, { method: 'DELETE' });
+              await this.loadUsers();
+              await this.loadOverview();
+            }
+          });
+        });
+      },
+
+      async loadOrders() {
+        const res = await fetch('/api/admin/orders');
+        const orders = await res.json();
+        this.state.orders = orders;
+        this.renderOrdersTable();
+      },
+
+      renderOrdersTable() {
+        const searchQuery = (document.getElementById('searchOrdersInput')?.value || '').toLowerCase().trim();
+        const typeFilter = document.getElementById('filterOrderType')?.value || 'ALL';
+
+        let filtered = this.state.orders;
+
+        if (typeFilter !== 'ALL') {
+          filtered = filtered.filter(o => o.orderType === typeFilter);
+        }
+
+        if (searchQuery) {
+          filtered = filtered.filter(o => 
+            String(o.id).includes(searchQuery) ||
+            (o.userName && o.userName.toLowerCase().includes(searchQuery)) ||
+            (o.userId && String(o.userId).includes(searchQuery))
+          );
+        }
+
+        const tbody = document.getElementById('ordersTbody');
+        if (!tbody) return;
+
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No deposit or sell orders recorded matching filter.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(o => {
+          let badgeClass = 'badge-info';
+          if (o.status === 'Success') badgeClass = 'badge-success';
+          if (o.status === 'Submit' || o.status === 'Submitted' || o.status === 'Pending') badgeClass = 'badge-warning';
+          if (o.status === 'Close' || o.status === 'Timeout') badgeClass = 'badge-danger';
+
+          return `
+            <tr>
+              <td><strong>#${o.id}</strong></td>
+              <td>${o.userName} (${o.userId})</td>
+              <td><span class="badge ${o.orderType === 'Deposit' ? 'badge-success' : 'badge-info'}">${o.orderType || 'Deposit'}</span></td>
+              <td><strong style="color:var(--primary-orange);">₹ ${o.amount.toFixed(2)}</strong></td>
+              <td>${o.usdtAmount || Math.round(o.amount / 110)} USDT</td>
+              <td><code>${o.utrNumber || o.accountNumber || o.paymentChannel || 'Admin Direct'}</code></td>
+              <td><span class="badge ${badgeClass}">${o.status}</span></td>
+              <td>${new Date(o.timestamp).toLocaleString()}</td>
+              <td>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                  ${o.status !== 'Success' ? `<button class="btn btn-secondary btn-quick-approve" data-id="${o.id}" data-type="${o.orderType || 'Deposit'}" style="padding:4px 8px; font-size:0.75rem; color:#50cd89; font-weight:800;" title="Quick Approve">✓ Approve</button>` : ''}
+                  ${o.status !== 'Close' ? `<button class="btn btn-secondary btn-quick-reject" data-id="${o.id}" data-type="${o.orderType || 'Deposit'}" style="padding:4px 8px; font-size:0.75rem; color:#f1416c; font-weight:800;" title="Quick Reject">✕ Reject</button>` : ''}
+                  
+                  <select class="form-control select-order-status" data-id="${o.id}" data-type="${o.orderType || 'Deposit'}" style="padding:2px 6px; font-size:0.75rem; font-weight:700; width:100px; display:inline-block;">
+                    <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                    <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    <option value="Submit" ${o.status === 'Submit' || o.status === 'Submitted' ? 'selected' : ''}>Submit</option>
+                    <option value="Success" ${o.status === 'Success' ? 'selected' : ''}>Success</option>
+                    <option value="Timeout" ${o.status === 'Timeout' ? 'selected' : ''}>Timeout</option>
+                    <option value="Close" ${o.status === 'Close' ? 'selected' : ''}>Close</option>
+                  </select>
+
+                  <button class="btn btn-secondary btn-del-order" data-id="${o.id}" style="padding:4px 8px; font-size:0.75rem; color:#f1416c;" title="Delete Order"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        tbody.querySelectorAll('.btn-quick-approve').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const orderId = e.currentTarget.getAttribute('data-id');
+            const orderType = e.currentTarget.getAttribute('data-type');
+            await fetch('/api/admin/orders/update-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId, orderType, newStatus: 'Success' })
+            });
+            await this.loadOrders();
+            await this.loadUsers();
+            await this.loadOverview();
+          });
+        });
+
+        tbody.querySelectorAll('.btn-quick-reject').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const orderId = e.currentTarget.getAttribute('data-id');
+            const orderType = e.currentTarget.getAttribute('data-type');
+            await fetch('/api/admin/orders/update-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId, orderType, newStatus: 'Close' })
+            });
+            await this.loadOrders();
+            await this.loadOverview();
+          });
+        });
+
+        tbody.querySelectorAll('.select-order-status').forEach(select => {
+          select.addEventListener('change', async (e) => {
+            const orderId = e.currentTarget.getAttribute('data-id');
+            const orderType = e.currentTarget.getAttribute('data-type');
+            const newStatus = e.currentTarget.value;
+            await fetch('/api/admin/orders/update-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId, orderType, newStatus })
+            });
+            await this.loadOrders();
+            await this.loadUsers();
+            await this.loadOverview();
+          });
+        });
+
+        tbody.querySelectorAll('.btn-del-order').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const orderId = e.currentTarget.getAttribute('data-id');
+            if (confirm(`Delete order #${orderId}?`)) {
+              await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+              await this.loadOrders();
+              await this.loadOverview();
+            }
+          });
+        });
+      },
+
+      async loadWallets() {
+        const res = await fetch('/api/admin/wallets');
+        const wallets = await res.json();
+        this.state.wallets = wallets;
+
+        const searchQuery = (document.getElementById('searchWalletsInput')?.value || '').toLowerCase().trim();
+        let filtered = wallets;
+
+        if (searchQuery) {
+          filtered = filtered.filter(w => 
+            (w.name && w.name.toLowerCase().includes(searchQuery)) ||
+            (w.address && w.address.toLowerCase().includes(searchQuery)) ||
+            (w.holderName && w.holderName.toLowerCase().includes(searchQuery))
+          );
+        }
+
+        const tbody = document.getElementById('adminWalletsTbody');
+        if (!tbody) return;
+
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">No user payment tools saved yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(w => `
+          <tr>
+            <td><strong>#${w.id}</strong></td>
+            <td><strong>${w.name}</strong></td>
+            <td><span class="badge badge-info">${w.type || 'Personal'}</span></td>
+            <td><code>${w.address}</code></td>
+            <td><strong>${w.holderName || '-'}</strong></td>
+            <td>${w.createdAt || 'Recent'}</td>
+            <td>
+              <button class="btn btn-secondary btn-del-wallet" data-id="${w.id}" style="color:#f1416c;"><i class="fa-solid fa-trash"></i> Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.btn-del-wallet').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            if (confirm('Delete this saved payment tool?')) {
+              await fetch(`/api/wallets/${id}`, { method: 'DELETE' });
+              await this.loadWallets();
+            }
+          });
+        });
+      },
+
+      async loadNotifs() {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        this.state.notifs = data.notifications;
+
+        const tbody = document.getElementById('adminNotifsTbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = data.notifications.map(n => `
+          <tr>
+            <td><strong style="color:var(--primary-orange);">${n.title}</strong></td>
+            <td>${n.body}</td>
+            <td><span class="badge badge-warning">${n.type}</span></td>
+            <td>${n.time}</td>
+            <td><span class="badge badge-success">Broadcasted</span></td>
+          </tr>
+        `).join('');
+      },
+
+      async loadOffers() {
+        const res = await fetch('/api/payment/offers');
+        const offers = await res.json();
+        this.state.offers = offers;
+
+        const tbody = document.getElementById('offersTbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = offers.map(o => `
+          <tr>
+            <td><strong>${o.code}</strong></td>
+            <td>∫ ${o.amount}</td>
+            <td><strong style="color:var(--primary-orange);">₹ ${o.income.toFixed(2)}</strong></td>
+            <td>+ ∫ ${o.specialBonus.toFixed(2)}</td>
+            <td>${o.category}</td>
+            <td>
+              <button class="btn btn-secondary btn-del-off" data-id="${o.id}"><i class="fa-solid fa-trash" style="color:#f1416c;"></i> Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.btn-del-off').forEach(b => {
+          b.addEventListener('click', async (e) => {
+            const id = Number(e.currentTarget.getAttribute('data-id'));
+            if (confirm('Delete offer?')) {
+              await fetch(`/api/admin/offers/${id}`, { method: 'DELETE' });
+              await this.loadOffers();
+            }
+          });
+        });
+      },
+
+      async loadRates() {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+
+        if (document.getElementById('rateExchange')) document.getElementById('rateExchange').value = stats.exchangeRate;
+        if (document.getElementById('rateScore')) document.getElementById('rateScore').value = stats.scoreRate || 10.00;
+        if (document.getElementById('rateCommission')) document.getElementById('rateCommission').value = stats.commissionRate;
+        if (document.getElementById('chkSpecialReward')) document.getElementById('chkSpecialReward').checked = stats.specialRewardActive !== false;
+        if (document.getElementById('chkSellingOpen')) document.getElementById('chkSellingOpen').checked = stats.isSellingOpen;
+        if (document.getElementById('chkMaintenanceMode')) document.getElementById('chkMaintenanceMode').checked = !!stats.maintenanceMode;
+        if (document.getElementById('rateAdminUpiId')) document.getElementById('rateAdminUpiId').value = stats.adminUpiId || '8104229900@upi';
+        if (document.getElementById('rateMerchantName')) document.getElementById('rateMerchantName').value = stats.merchantName || 'Fintech Hub';
+        if (document.getElementById('appVersionInput')) document.getElementById('appVersionInput').value = stats.appVersion || 'v1.1.9';
+        
+        const previewUpi = stats.adminUpiId || '8104229900@upi';
+        const previewName = stats.merchantName || 'Fintech Hub';
+        const previewUri = `upi://pay?pa=${previewUpi}&pn=${encodeURIComponent(previewName)}&cu=INR`;
+        if (document.getElementById('adminQrPreviewImg')) {
+          document.getElementById('adminQrPreviewImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(previewUri)}`;
+        }
+      },
+
+      async loadLogs() {
+        const res = await fetch('/api/admin/logs');
+        const logs = await res.json();
+        this.state.logs = logs;
+
+        const tbody = document.getElementById('logsTbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = logs.map(l => `
+          <tr>
+            <td>${new Date(l.timestamp).toLocaleString()}</td>
+            <td><strong style="color:var(--primary-orange);">${l.action}</strong></td>
+            <td>${l.detail}</td>
+            <td><code>${l.ip}</code></td>
+          </tr>
+        `).join('');
+      },
+
+      bindActions() {
+        document.getElementById('btnQuickAddUser')?.addEventListener('click', () => document.getElementById('modalAddUser').classList.add('active'));
+        document.getElementById('btnOpenAddUserModal')?.addEventListener('click', () => document.getElementById('modalAddUser').classList.add('active'));
+        document.getElementById('btnQuickNewOffer')?.addEventListener('click', () => document.getElementById('modalNewOffer').classList.add('active'));
+        document.getElementById('btnOpenNewOfferModal')?.addEventListener('click', () => document.getElementById('modalNewOffer').classList.add('active'));
+
+        document.getElementById('btnQuickCreateOrder')?.addEventListener('click', () => this.openCreateOrderModal());
+        document.getElementById('btnOpenCreateOrderModal')?.addEventListener('click', () => this.openCreateOrderModal());
+        document.getElementById('btnOpenAddWalletModal')?.addEventListener('click', () => this.openAddWalletModal());
+
+        // Form Submit: Admin Add Wallet
+        document.getElementById('formAdminAddWallet')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const userId = document.getElementById('adminWalletUserSelect').value;
+          const walletType = document.getElementById('adminWalletType').value;
+          const walletName = document.getElementById('adminWalletProvider').value;
+          const walletAddress = document.getElementById('adminWalletAddress').value;
+          const holderName = document.getElementById('adminWalletHolder').value;
+
+          const res = await fetch('/api/admin/wallets/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, walletType, walletName, walletAddress, holderName })
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.error || 'Failed to add wallet');
+
+          document.getElementById('modalAdminAddWallet').classList.remove('active');
+          e.target.reset();
+          alert(`Successfully added ${walletName} wallet for User ID: ${userId}!`);
+          await this.loadWallets();
+        });
+
+        // Search inputs event listeners
+        document.getElementById('searchUsersInput')?.addEventListener('input', () => this.renderUsersTable());
+        document.getElementById('searchOrdersInput')?.addEventListener('input', () => this.renderOrdersTable());
+        document.getElementById('filterOrderType')?.addEventListener('change', () => this.renderOrdersTable());
+        document.getElementById('searchWalletsInput')?.addEventListener('input', () => this.loadWallets());
+
+        document.querySelectorAll('[data-close]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            document.getElementById(e.currentTarget.getAttribute('data-close')).classList.remove('active');
+          });
+        });
+
+        // Form Submit: Balance Adjustment
+        document.getElementById('formAdjustBalance')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const userId = document.getElementById('adjUserId').value;
+          const action = document.getElementById('adjActionType').value;
+          const amount = Number(document.getElementById('adjAmount').value);
+          const reason = document.getElementById('adjReason').value;
+
+          const res = await fetch('/api/admin/users/adjust-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, action, amount, reason })
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.error || 'Failed to adjust balance');
+
+          document.getElementById('modalAdjustBalance').classList.remove('active');
+          e.target.reset();
+          alert(`Successfully updated balance! New Balance: ₹${data.newBalance.toFixed(2)}`);
+          await this.loadUsers();
+          await this.loadOverview();
+        });
+
+        // Form Submit: Manual Create Order
+        document.getElementById('formCreateManualOrder')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const userId = document.getElementById('createOrderUserSelect').value;
+          const orderType = document.getElementById('createOrderType').value;
+          const amount = Number(document.getElementById('createOrderAmount').value);
+          const status = document.getElementById('createOrderStatus').value;
+          const payoutBank = document.getElementById('createOrderChannel').value;
+
+          const res = await fetch('/api/admin/orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, orderType, amount, status, payoutBank })
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.error || 'Failed to create manual order');
+
+          document.getElementById('modalCreateOrder').classList.remove('active');
+          e.target.reset();
+          alert(`Manual ${orderType} order #${data.id} created successfully!`);
+          await this.loadOrders();
+          await this.loadUsers();
+          await this.loadOverview();
+        });
+
+        // Broadcast Notification Submit
+        document.getElementById('formAdminBroadcast')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const title = document.getElementById('notifTitle').value;
+          const body = document.getElementById('notifBody').value;
+          const type = document.getElementById('notifType').value;
+
+          const res = await fetch('/api/admin/notifications/broadcast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, body, type })
+          });
+          const data = await res.json();
+          if (!res.ok) return alert('Failed to broadcast notification');
+
+          e.target.reset();
+          alert('Notification broadcasted to all users!');
+          await this.loadNotifs();
+        });
+
+        // Add User Submit
+        document.getElementById('formAddUser')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('addName').value;
+          const phone = document.getElementById('addPhone').value;
+          const password = document.getElementById('addPassword').value;
+          const userId = document.getElementById('addId').value;
+          const balance = document.getElementById('addBal').value;
+          const scorePoints = document.getElementById('addScore').value;
+          const deposit = document.getElementById('addDep').value;
+          const status = document.getElementById('addStatus').value;
+
+          const res = await fetch('/api/admin/users/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, password, userId, balance, scorePoints, deposit, status })
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.error);
+
+          document.getElementById('modalAddUser').classList.remove('active');
+          e.target.reset();
+          alert(`User ${data.name} (ID: ${data.id}) created!`);
+          await this.loadUsers();
+          await this.loadOverview();
+        });
+
+        // Edit User Submit
+        document.getElementById('formEditUser')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const userId = document.getElementById('editUidHidden').value;
+          const name = document.getElementById('editName').value;
+          const phone = document.getElementById('editPhone').value;
+          const password = document.getElementById('editPassword').value;
+          const balance = Number(document.getElementById('editBal').value);
+          const scorePoints = Number(document.getElementById('editScore').value);
+          const deposit = Number(document.getElementById('editDep').value);
+          const withdrawal = Number(document.getElementById('editWith').value);
+          const commission = Number(document.getElementById('editComm').value);
+          const bonus = Number(document.getElementById('editBonus').value);
+
+          await fetch('/api/admin/users/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, name, phone, password, balance, scorePoints, deposit, withdrawal, commission, bonus })
+          });
+
+          document.getElementById('modalEditUser').classList.remove('active');
+          alert(`User profile & credentials updated for ${name}!`);
+          await this.loadUsers();
+          await this.loadOverview();
+        });
+
+        // New Offer Submit
+        document.getElementById('formNewOffer')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const amount = document.getElementById('offAmt').value;
+          const code = document.getElementById('offCode').value;
+          const income = document.getElementById('offInc').value;
+          const specialBonus = document.getElementById('offSpec').value;
+          const category = document.getElementById('offCat').value;
+
+          await fetch('/api/admin/offers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, code, income, specialBonus, category })
+          });
+
+          document.getElementById('modalNewOffer').classList.remove('active');
+          e.target.reset();
+          alert('Offer created!');
+          await this.loadOffers();
+        });
+
+        // Rates Submit
+        document.getElementById('formSystemRates')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const exchangeRate = Number(document.getElementById('rateExchange').value);
+          const scoreRate = Number(document.getElementById('rateScore').value);
+          const commissionRate = Number(document.getElementById('rateCommission').value);
+          const specialRewardActive = document.getElementById('chkSpecialReward').checked;
+          const isSellingOpen = document.getElementById('chkSellingOpen').checked;
+          const maintenanceMode = document.getElementById('chkMaintenanceMode')?.checked || false;
+          const adminUpiId = document.getElementById('rateAdminUpiId')?.value || '8104229900@upi';
+          const merchantName = document.getElementById('rateMerchantName')?.value || 'Fintech Hub';
+          const appVersion = document.getElementById('appVersionInput').value;
+
+          await fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exchangeRate, scoreRate, commissionRate, specialRewardActive, maintenanceMode, isSellingOpen, adminUpiId, merchantName, appVersion })
+          });
+
+          alert('Platform settings saved successfully!');
+          await this.loadRates();
+          await this.loadOverview();
+        });
+
+        // CSV Exports
+        document.getElementById('btnExportUsersCsv')?.addEventListener('click', () => this.exportCsv('users', this.state.users));
+        document.getElementById('btnExportOrdersCsv')?.addEventListener('click', () => this.exportCsv('orders', this.state.orders));
+        document.getElementById('btnExportLogsCsv')?.addEventListener('click', () => this.exportCsv('logs', this.state.logs));
+      },
+
+      openAddWalletModal() {
+        const select = document.getElementById('adminWalletUserSelect');
+        if (select && this.state.users.length) {
+          select.innerHTML = this.state.users.map(u => `
+            <option value="${u.id}">${u.name} (ID: ${u.id})</option>
+          `).join('');
+        }
+        document.getElementById('modalAdminAddWallet')?.classList.add('active');
+      },
+
+      openCreateOrderModal() {
+        const select = document.getElementById('createOrderUserSelect');
+        if (select && this.state.users.length) {
+          select.innerHTML = this.state.users.map(u => `
+            <option value="${u.id}">${u.name} (ID: ${u.id}) - Bal: ₹${u.balance.toFixed(2)}</option>
+          `).join('');
+        }
+        document.getElementById('modalCreateOrder')?.classList.add('active');
+      },
+
+      exportCsv(type, dataArray) {
+        if (!dataArray || !dataArray.length) return alert('No data to export');
+        const headers = Object.keys(dataArray[0]);
+        const rows = dataArray.map(obj => headers.map(h => `"${obj[h]}"`).join(','));
+        const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+        const a = document.createElement('a');
+        a.href = encodeURI(csv);
+        a.download = `fintech_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    };
+  </script>
+</body>
+</html>

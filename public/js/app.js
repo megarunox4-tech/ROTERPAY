@@ -1,0 +1,1559 @@
+/* ==========================================================================
+   MASTER FINTECH PLATFORM - APP, SCORE, DEPOSIT & SELL ORDERS CONTROLLER
+   ========================================================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+  FintechApp.init();
+});
+
+const FintechApp = {
+  state: {
+    activeAppTab: 'home',
+    currentUser: null,
+    authToken: null,
+    stats: null,
+    offers: [],
+    wallets: [],
+    tasks: [],
+    notifications: [],
+    depositOrders: [],
+    sellOrders: [],
+    depDateFilter: 'ALL',
+    depStatusFilter: 'ALL',
+    sellStatusFilter: 'ALL',
+    unreadCount: 0,
+    notifFilter: 'ALL',
+    filterCategory: 'ALL',
+    selectedChain: 'TRC20',
+    taskCategoryFilter: 'NEWBIE',
+    activeToolSegment: 'Personal',
+    selectedToolOption: 'Freecharge',
+    paymentToolsCatalog: {
+      Personal: [
+        { id: 'freecharge', name: 'Freecharge', iconClass: 'bg-freecharge', iconText: 'F', payout: true, sub: '' },
+        { id: 'mobikwik', name: 'Mobikwik', iconClass: 'bg-mobikwik', iconText: 'M', payout: true, sub: 'Payin 10.00 - 100000.00' },
+        { id: 'paytm', name: 'Paytm', iconClass: 'bg-paytm', iconText: 'P', payout: true, sub: 'Payin 10.00 - 100000.00' },
+        { id: 'induspay', name: 'IndusPay', iconClass: 'bg-induspay', iconText: 'IP', payout: false, sub: 'Payin 10.00 - 100000.00' },
+        { id: 'bharatpebiz', name: 'BharatpeBiz', iconClass: 'bg-bharatpe', iconText: 'B', payout: false, sub: 'Payin 300.00 - 10000.00' }
+      ],
+      Business: [
+        { id: 'paytm_biz', name: 'Paytm Business', iconClass: 'bg-paytm', iconText: 'P', payout: true, sub: 'Payin 100.00 - 500000.00' },
+        { id: 'bharatpe_biz', name: 'Bharatpe Merchant', iconClass: 'bg-bharatpe', iconText: 'B', payout: true, sub: 'Payin 500.00 - 1000000.00' },
+        { id: 'phonepe_biz', name: 'PhonePe Business', iconClass: 'bg-phonepe', iconText: 'P', payout: true, sub: 'Payin 200.00 - 500000.00' },
+        { id: 'gpay_biz', name: 'GooglePay Merchant', iconClass: 'bg-gpay', iconText: 'G', payout: false, sub: 'Payin 500.00 - 1000000.00' }
+      ]
+    },
+    taskItemsList: [
+      { id: 't1', category: 'NEWBIE', title: 'New Member Tasks', desc: 'Register and start trading. Once your total trading amount reaches 20000.', tokens: 178, current: 0, max: 20000, status: 'NOT_STARTED', actionText: 'Not Started' },
+      { id: 't2', category: 'NEWBIE', title: 'Bind Wallet Type Paytm Business Reward', desc: 'You can get rewards by binding your Paytm Business wallet.', tokens: 49, current: 0, max: 1, status: 'GO_TO_BIND', actionText: 'Go to Bind' },
+      { id: 't3', category: 'TEAM', title: 'Invite 3 Active Friends', desc: 'Invite 3 direct friends to register and start trading.', tokens: 120, current: 1, max: 3, status: 'INVITE', actionText: 'Invite Now' },
+      { id: 't4', category: 'TEAM', title: 'Team Trading Volume 50000', desc: 'Earn team commission bonuses once team trading reaches 50000.', tokens: 350, current: 5000, max: 50000, status: 'NOT_STARTED', actionText: 'Not Started' },
+      { id: 't5', category: 'DAILY', title: 'Daily Login Reward', desc: 'Log in to the app daily to claim free reward tokens.', tokens: 25, current: 1, max: 1, status: 'CLAIMABLE', actionText: 'Claim Reward' },
+      { id: 't6', category: 'DAILY', title: 'Complete 1 Order Claim Today', desc: 'Claim any payment cashback offer today.', tokens: 50, current: 0, max: 1, status: 'GO_TO_CLAIM', actionText: 'Go to Claim' }
+    ]
+  },
+
+  async init() {
+    this.bindAppNavigation();
+    this.bindAppEvents();
+    await this.loadAllAppData();
+    // Real-time live background sync (every 2 seconds) so any change in Admin instantly updates website!
+    setInterval(() => this.pollLiveUpdates(), 2000);
+  },
+
+  async pollLiveUpdates() {
+    try {
+      const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+      const [uRes, sRes, oRes, nRes] = await Promise.all([
+        fetch(`/api/user?id=${activeId}`),
+        fetch('/api/stats'),
+        fetch(`/api/user/orders?id=${activeId}`),
+        fetch('/api/notifications')
+      ]);
+
+      if (uRes.ok) {
+        const user = await uRes.json();
+        this.state.currentUser = user;
+
+        if (document.getElementById('userName')) document.getElementById('userName').textContent = user.name;
+        if (document.getElementById('userId')) document.getElementById('userId').textContent = user.id;
+
+        if (document.getElementById('homeBalance')) document.getElementById('homeBalance').textContent = user.balance.toFixed(2);
+        if (document.getElementById('homeDeposit')) document.getElementById('homeDeposit').textContent = user.deposit.toFixed(2);
+        if (document.getElementById('homeWithdrawal')) document.getElementById('homeWithdrawal').textContent = user.withdrawal.toFixed(2);
+
+        if (document.getElementById('userScoreDisplay')) document.getElementById('userScoreDisplay').textContent = (user.scorePoints || 0).toLocaleString();
+        if (document.getElementById('scoreBalVal')) document.getElementById('scoreBalVal').textContent = user.balance.toFixed(2);
+        if (document.getElementById('scoreDepVal')) document.getElementById('scoreDepVal').textContent = user.deposit.toFixed(2);
+        if (document.getElementById('scoreWithVal')) document.getElementById('scoreWithVal').textContent = user.withdrawal.toFixed(2);
+        if (document.getElementById('scoreCommVal')) document.getElementById('scoreCommVal').textContent = user.commission.toFixed(2);
+
+        if (document.getElementById('paymentBalance')) document.getElementById('paymentBalance').textContent = user.balance.toFixed(0);
+        if (document.getElementById('paymentReward')) document.getElementById('paymentReward').textContent = user.cashbackReward || 0;
+        if (document.getElementById('paymentPending')) document.getElementById('paymentPending').textContent = user.cashbackPending || 0;
+
+        if (document.getElementById('statBalance')) document.getElementById('statBalance').textContent = user.balance.toFixed(2);
+        if (document.getElementById('statSell')) document.getElementById('statSell').textContent = (user.sellTotal || 0).toFixed(2);
+        if (document.getElementById('statDeposit')) document.getElementById('statDeposit').textContent = user.deposit.toFixed(2);
+        if (document.getElementById('statCommission')) document.getElementById('statCommission').textContent = user.commission.toFixed(2);
+
+        if (document.getElementById('teamTotalCommDisplay')) document.getElementById('teamTotalCommDisplay').textContent = user.commission.toFixed(2);
+        if (document.getElementById('teamDepTotal')) document.getElementById('teamDepTotal').textContent = user.deposit.toFixed(2);
+      }
+
+      if (sRes.ok) {
+        const stats = await sRes.json();
+        this.state.stats = stats;
+
+        const maintOverlay = document.getElementById('maintenanceOverlay');
+        if (maintOverlay) {
+          maintOverlay.style.display = stats.maintenanceMode ? 'flex' : 'none';
+        }
+
+        if (document.getElementById('quickUsdtRate')) document.getElementById('quickUsdtRate').textContent = `${stats.exchangeRate}INR`;
+        if (document.getElementById('scoreRateBadge')) document.getElementById('scoreRateBadge').textContent = `100 Score = ₹ ${stats.scoreRate || 10} INR`;
+        if (document.getElementById('statExchangeRate')) document.getElementById('statExchangeRate').textContent = stats.exchangeRate;
+        if (document.getElementById('statCommissionRate')) document.getElementById('statCommissionRate').textContent = stats.commissionRate.toFixed(2);
+
+        const btnSell = document.getElementById('btnToggleSelling');
+        if (btnSell) {
+          if (stats.isSellingOpen) {
+            btnSell.textContent = 'Selling Active (Open)';
+            btnSell.style.background = '#ff6600';
+          } else {
+            btnSell.textContent = 'Closed Selling';
+            btnSell.style.background = '#f59e0b';
+          }
+        }
+      }
+
+      if (oRes.ok) {
+        const orders = await oRes.json();
+        this.state.depositOrders = orders.filter(o => o.orderType === 'Deposit');
+        this.state.sellOrders = orders.filter(o => o.orderType === 'Sell');
+        this.renderHomeTransactions();
+        if (this.state.activeAppTab === 'deposit-orders') this.renderDepositBuyOrders();
+        if (this.state.activeAppTab === 'sell-orders') this.renderSellOrders();
+      }
+
+      if (nRes.ok) {
+        const nData = await nRes.json();
+        this.state.notifications = nData.notifications;
+        const badge = document.getElementById('bellUnreadBadge');
+        if (badge) {
+          if (nData.unreadCount > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = nData.unreadCount;
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Poll update skipped:', e);
+    }
+  },
+
+  // TEAM MANAGEMENT CONTROLLER (MATCHING SCREENSHOTS 1 & 2 IN ORANGE + WHITE)
+  openTeamView() {
+    this.switchAppTab('team-statistics');
+    this.loadTeamStatistics();
+  },
+
+  loadTeamStatistics() {
+    const user = this.state.currentUser || { id: '310422', commission: 0.00, deposit: 0.00 };
+    document.getElementById('teamTotalCommDisplay').textContent = user.commission.toFixed(2);
+    document.getElementById('teamInviteCode').textContent = user.id;
+    document.getElementById('teamDepTotal').textContent = user.deposit.toFixed(2);
+  },
+
+  copyInviteLink() {
+    const code = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const origin = window.location.origin || `http://${window.location.hostname}:3000`;
+    const link = `${origin}/register?ref=${code}`;
+    navigator.clipboard.writeText(link);
+    this.showToast(`Invitation Link copied: ${link}`, 'success');
+  },
+
+  shareAppTo(platform) {
+    const code = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const origin = window.location.origin || `http://${window.location.hostname}:3000`;
+    const link = `${origin}/register?ref=${code}`;
+    const text = encodeURIComponent(`Join Fintech Hub with my referral link: ${link}`);
+
+    if (platform === 'telegram') window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`, '_blank');
+    else if (platform === 'facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`, '_blank');
+    else if (platform === 'whatsapp') window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  },
+
+  filterTeamPerf(period) {
+    document.getElementById('perfChipDay')?.classList.toggle('active', period === 'Day');
+    document.getElementById('perfChipWeek')?.classList.toggle('active', period === 'Week');
+    document.getElementById('perfChipMonth')?.classList.toggle('active', period === 'Month');
+
+    const bars = document.getElementById('perfGraphicBars');
+    if (!bars) return;
+
+    if (period === 'Day') {
+      bars.innerHTML = `
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 15%;"></div><span class="perf-bar-label">6AM</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 35%;"></div><span class="perf-bar-label">12PM</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 70%;"></div><span class="perf-bar-label">6PM</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 50%;"></div><span class="perf-bar-label">12AM</span></div>
+      `;
+    } else if (period === 'Week') {
+      bars.innerHTML = `
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 30%;"></div><span class="perf-bar-label">Mon</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 55%;"></div><span class="perf-bar-label">Wed</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 90%;"></div><span class="perf-bar-label">Fri</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 75%;"></div><span class="perf-bar-label">Sun</span></div>
+      `;
+    } else {
+      bars.innerHTML = `
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 20%;"></div><span class="perf-bar-label">W1</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 45%;"></div><span class="perf-bar-label">W2</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 80%;"></div><span class="perf-bar-label">W3</span></div>
+        <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 60%;"></div><span class="perf-bar-label">W4</span></div>
+      `;
+    }
+  },
+
+  // TASK REWARDS CONTROLLER (MATCHING SCREENSHOT IN ORANGE + WHITE)
+  openTaskRewardsView() {
+    this.switchAppTab('task-rewards');
+    this.renderTaskRewards();
+  },
+
+  filterTaskCategory(cat) {
+    this.state.taskCategoryFilter = cat;
+    document.getElementById('taskTabNewbie')?.classList.toggle('active', cat === 'NEWBIE');
+    document.getElementById('taskTabTeam')?.classList.toggle('active', cat === 'TEAM');
+    document.getElementById('taskTabDaily')?.classList.toggle('active', cat === 'DAILY');
+    this.renderTaskRewards();
+  },
+
+  renderTaskRewards() {
+    const container = document.getElementById('taskRewardsListContainer');
+    if (!container) return;
+
+    const filtered = this.state.taskItemsList.filter(t => t.category === this.state.taskCategoryFilter);
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="card text-center text-muted" style="padding: 2rem;">No tasks available in this category.</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(t => {
+      const progressPercent = Math.min(100, (t.current / t.max) * 100);
+      
+      let btnClass = 'btn-task-not-started';
+      if (t.status === 'GO_TO_BIND' || t.status === 'GO_TO_CLAIM' || t.status === 'INVITE') btnClass = 'btn-task-go-bind';
+      if (t.status === 'CLAIMABLE') btnClass = 'btn-task-claim';
+      if (t.status === 'COMPLETED') btnClass = 'btn-task-completed';
+
+      return `
+        <div class="task-card-orange">
+          <div class="task-card-header">
+            <div class="task-cat-badge">
+              <span class="task-cat-dot"></span>
+              <span>${t.category}</span>
+            </div>
+            <div class="task-progress-wrap">
+              <div class="task-progress-bar-bg">
+                <div class="task-progress-bar-fill" style="width: ${progressPercent}%;"></div>
+              </div>
+              <span class="task-progress-text">${t.current} / ${t.max}</span>
+            </div>
+          </div>
+
+          <h3 class="task-card-title">${t.title}</h3>
+          <p class="task-card-desc">${t.desc}</p>
+
+          <div class="task-card-footer">
+            <div class="token-reward-pill">
+              <div class="token-star-icon"><i class="fa-solid fa-star"></i></div>
+              <span>${t.tokens}</span>
+            </div>
+            <button class="btn-task-action-pill ${btnClass}" onclick="FintechApp.handleTaskAction('${t.id}')">${t.actionText}</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  handleTaskAction(taskId) {
+    const task = this.state.taskItemsList.find(t => t.id === taskId);
+    if (!task) return;
+
+    if (task.status === 'GO_TO_BIND') {
+      this.switchAppTab('tool');
+      this.showToast('Please add a wallet to complete this task', 'info');
+    } else if (task.status === 'GO_TO_CLAIM') {
+      this.switchAppTab('payment');
+      this.showToast('Claim any cashback offer to complete task', 'info');
+    } else if (task.status === 'INVITE') {
+      document.getElementById('modalTeamCenter')?.classList.add('active');
+    } else if (task.status === 'CLAIMABLE') {
+      task.status = 'COMPLETED';
+      task.actionText = 'Completed';
+      
+      if (this.state.currentUser) {
+        this.state.currentUser.scorePoints = (this.state.currentUser.scorePoints || 0) + task.tokens;
+      }
+
+      this.showToast(`Claimed +${task.tokens} Token Reward Points!`, 'success');
+      this.renderTaskRewards();
+      this.loadUser();
+    } else if (task.status === 'NOT_STARTED') {
+      this.showToast('Task not started yet. Complete prerequisites first.', 'info');
+    } else if (task.status === 'COMPLETED') {
+      this.showToast('Task reward already completed & claimed!', 'success');
+    }
+  },
+
+  // USDT DEPOSIT CALCULATOR CONTROLLER (MATCHING SCREENSHOT IN ORANGE + WHITE)
+  openUsdtDepositView() {
+    this.switchAppTab('usdt-deposit');
+    this.calcUsdtReceive();
+  },
+
+  calcUsdtReceive() {
+    const inputVal = Number(document.getElementById('usdtCalcInput').value) || 0;
+    const rate = this.state.stats?.exchangeRate || 110;
+    const totalScore = (inputVal * rate).toFixed(2);
+    
+    document.getElementById('usdtRatioLabel').textContent = `Ratio: 1 USDT=${rate} INR`;
+    document.getElementById('usdtReceivePreview').textContent = `${totalScore} Score`;
+    document.getElementById('usdtBonusPreview').textContent = `${(inputVal * 0.05).toFixed(2)} Score`;
+  },
+
+  selectChainType(chain) {
+    this.state.selectedChain = chain;
+    document.getElementById('chainCardTRC20')?.classList.toggle('selected', chain === 'TRC20');
+    document.getElementById('chainCardBSC')?.classList.toggle('selected', chain === 'BSC');
+  },
+
+  async handleUsdtDepositSubmit() {
+    const amountUsdt = Number(document.getElementById('usdtCalcInput').value);
+    if (!amountUsdt || amountUsdt <= 0) return this.showToast('Please enter a valid USDT amount', 'danger');
+
+    const rate = this.state.stats?.exchangeRate || 110;
+    const amountInr = amountUsdt * rate;
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const chain = this.state.selectedChain || 'TRC20';
+    const paymentChannel = `USDT (${chain})`;
+
+    try {
+      const res = await fetch('/api/user/topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amountInr, userId, paymentChannel })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Generate Order Payment Details Data (Matching User Screenshot 2)
+      const now = new Date();
+      const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+      const randomSerial = 'U' + now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0') +
+        String(now.getSeconds()).padStart(2, '0') +
+        Math.floor(100000 + Math.random() * 900000);
+
+      const targetAddress = chain === 'BSC' ? 
+        '0xb2767c43476e6fbefc1bb530b126d0c726d8842b' : 
+        'T9yD14Nj9j7xPz411K39qL00x9a83B81Z1';
+
+      document.getElementById('ordUsdtAmountDisplay').textContent = `USDT ${amountUsdt.toFixed(2)}`;
+      document.getElementById('ordAddressVal').textContent = targetAddress;
+      document.getElementById('ordTypeValText').textContent = `${chain}-USDT`;
+      document.getElementById('ordStatusVal').textContent = 'Pending';
+      document.getElementById('ordCreatedAtVal').textContent = dateStr;
+      document.getElementById('ordSerialNoVal').textContent = randomSerial;
+
+      this.switchAppTab('usdt-order-detail');
+      this.showToast(`Order created for ${amountUsdt} USDT (${chain})!`, 'success');
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  copyOrderField(elementId, label) {
+    const text = document.getElementById(elementId)?.textContent || '';
+    if (text) {
+      navigator.clipboard.writeText(text);
+      this.showToast(`${label} copied to clipboard!`, 'success');
+    }
+  },
+
+  async init() {
+    this.bindAppNavigation();
+    this.bindAppEvents();
+    
+    // Check saved user session
+    const savedToken = localStorage.getItem('fintech_user_token');
+    const savedUser = localStorage.getItem('fintech_user_data');
+
+    if (savedToken && savedUser) {
+      try {
+        this.state.authToken = savedToken;
+        this.state.currentUser = JSON.parse(savedUser);
+        this.closeAuth();
+        await this.loadAllAppData();
+      } catch (e) {
+        this.showAuthOverlay();
+      }
+    } else {
+      this.showAuthOverlay();
+    }
+  },
+
+  showAuthOverlay() {
+    const overlay = document.getElementById('userAuthOverlay');
+    if (overlay) overlay.classList.add('active');
+    this.showLogin();
+  },
+
+  closeAuth() {
+    const overlay = document.getElementById('userAuthOverlay');
+    if (overlay) overlay.classList.remove('active');
+  },
+
+  showLogin() {
+    const loginCard = document.getElementById('cardUserLogin');
+    const regCard = document.getElementById('cardUserRegister');
+    if (loginCard) loginCard.style.display = 'block';
+    if (regCard) regCard.style.display = 'none';
+  },
+
+  showRegister() {
+    const loginCard = document.getElementById('cardUserLogin');
+    const regCard = document.getElementById('cardUserRegister');
+    if (loginCard) loginCard.style.display = 'none';
+    if (regCard) regCard.style.display = 'block';
+  },
+
+  togglePassVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    if (input) {
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+  },
+
+  async demoLoginRajju() {
+    document.getElementById('loginInputStr').value = '310422';
+    document.getElementById('loginPasswordStr').value = '123';
+    
+    const form = document.getElementById('formUserLogin');
+    if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+  },
+
+  async handleLogin(e) {
+    if (e) e.preventDefault();
+    const loginInput = document.getElementById('loginInputStr').value;
+    const password = document.getElementById('loginPasswordStr').value;
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginInput, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.state.authToken = data.token;
+      this.state.currentUser = data.user;
+      localStorage.setItem('fintech_user_token', data.token);
+      localStorage.setItem('fintech_user_data', JSON.stringify(data.user));
+
+      this.closeAuth();
+      this.showToast(`Signed in as ${data.user.name}!`, 'success');
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async handleRegister(e) {
+    if (e) e.preventDefault();
+    const name = document.getElementById('regName').value;
+    const phone = document.getElementById('regPhone').value;
+    const password = document.getElementById('regPassword').value;
+    const referralCode = document.getElementById('regReferral').value;
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, password, referralCode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.state.authToken = data.token;
+      this.state.currentUser = data.user;
+      localStorage.setItem('fintech_user_token', data.token);
+      localStorage.setItem('fintech_user_data', JSON.stringify(data.user));
+
+      this.closeAuth();
+      this.showToast(`Account created! User ID: ${data.user.id}`, 'success');
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  // SELL ORDERS CONTROLLER (WITHDRAWAL CLICK - STATUS FILTERS)
+  async openSellOrdersView() {
+    this.switchAppTab('sell-orders');
+    await this.loadSellOrders();
+  },
+
+  async loadSellOrders() {
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const res = await fetch(`/api/user/sell-orders?userId=${userId}`);
+    const orders = await res.json();
+    this.state.sellOrders = orders;
+    this.renderSellOrders();
+    this.renderHomeTransactions();
+  },
+
+  filterSellStatus(status) {
+    this.state.sellStatusFilter = status;
+    document.getElementById('chipSellStatusAll')?.classList.toggle('active', status === 'ALL');
+    document.getElementById('chipSellStatusPending')?.classList.toggle('active', status === 'PENDING');
+    document.getElementById('chipSellStatusSubmitted')?.classList.toggle('active', status === 'SUBMITTED');
+    document.getElementById('chipSellStatusSuccess')?.classList.toggle('active', status === 'SUCCESS');
+    document.getElementById('chipSellStatusTimeout')?.classList.toggle('active', status === 'TIMEOUT');
+    this.renderSellOrders();
+  },
+
+  renderSellOrders() {
+    const container = document.getElementById('sellOrdersListContainer');
+    if (!container) return;
+
+    let filtered = [...this.state.sellOrders];
+    if (this.state.sellStatusFilter !== 'ALL') {
+      filtered = filtered.filter(o => o.status.toUpperCase() === this.state.sellStatusFilter);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="card text-center text-muted" style="padding: 2rem;">No sell orders in ${this.state.sellStatusFilter} status.</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(o => {
+      let badgeClass = 'badge-pending';
+      if (o.status === 'Submitted') badgeClass = 'badge-submit';
+      if (o.status === 'Success') badgeClass = 'badge-success-green';
+      if (o.status === 'Timeout') badgeClass = 'badge-timeout';
+
+      return `
+        <div class="card" style="margin-bottom: 12px; border-left: 4px solid var(--accent-blue);">
+          <div class="flex-between">
+            <strong class="text-blue" style="font-size:0.9rem;">#SELL-${o.id}</strong>
+            <span class="status-badge-pill ${badgeClass}">${o.status}</span>
+          </div>
+
+          <div class="flex-between margin-top-1">
+            <div>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Withdrawal Amount</span>
+              <h4 style="font-family:var(--font-heading); font-size:1.3rem; font-weight:800; color:var(--text-dark);">₹ ${o.amount.toFixed(2)}</h4>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size:0.75rem; color:var(--text-muted);">USDT Value</span>
+              <h4 style="font-family:var(--font-heading); font-size:1.1rem; font-weight:800; color:var(--accent-blue);">${o.usdtAmount} USDT</h4>
+            </div>
+          </div>
+
+          <div class="flex-between margin-top-1" style="font-size:0.75rem; color:var(--text-medium); border-top:1px solid var(--border-color); padding-top:8px;">
+            <span><i class="fa-solid fa-building-columns text-blue"></i> ${o.payoutBank || 'Bank Transfer'} (${o.accountNumber || '****9900'})</span>
+            <span><i class="fa-regular fa-clock"></i> ${new Date(o.timestamp).toLocaleString()}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  async handleCreateSellOrder(e) {
+    if (e) e.preventDefault();
+    const amount = document.getElementById('sellAmountInput').value;
+    const payoutBank = document.getElementById('sellBankInput').value;
+    const accountNumber = document.getElementById('sellAccInput').value;
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+
+    try {
+      const res = await fetch('/api/user/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, userId, payoutBank, accountNumber })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.showToast(data.message, 'success');
+      document.getElementById('sellAmountInput').value = '';
+      await this.loadSellOrders();
+      await this.loadUser();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  // DEPOSIT BUY ORDERS CONTROLLER (DATE & STATUS FILTERS)
+  async openDepositOrdersView() {
+    this.switchAppTab('deposit-orders');
+    await this.loadDepositBuyOrders();
+  },
+
+  async loadDepositBuyOrders() {
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const res = await fetch(`/api/user/deposit-orders?userId=${userId}`);
+    const orders = await res.json();
+    this.state.depositOrders = orders;
+    this.renderDepositBuyOrders();
+    this.renderHomeTransactions();
+  },
+
+  filterDepDate(range) {
+    this.state.depDateFilter = range;
+    document.getElementById('chipDateAll')?.classList.toggle('active', range === 'ALL');
+    document.getElementById('chipDate7')?.classList.toggle('active', range === '7D');
+    document.getElementById('chipDate30')?.classList.toggle('active', range === '30D');
+    document.getElementById('chipDate90')?.classList.toggle('active', range === '90D');
+    this.renderDepositBuyOrders();
+  },
+
+  filterDepStatus(status) {
+    this.state.depStatusFilter = status;
+    document.getElementById('chipStatusAll')?.classList.toggle('active', status === 'ALL');
+    document.getElementById('chipStatusProcessing')?.classList.toggle('active', status === 'PROCESSING');
+    document.getElementById('chipStatusSubmit')?.classList.toggle('active', status === 'SUBMIT');
+    document.getElementById('chipStatusSuccess')?.classList.toggle('active', status === 'SUCCESS');
+    document.getElementById('chipStatusClose')?.classList.toggle('active', status === 'CLOSE');
+    this.renderDepositBuyOrders();
+  },
+
+  renderDepositBuyOrders() {
+    const container = document.getElementById('depositBuyOrdersContainer');
+    if (!container) return;
+
+    let filtered = [...this.state.depositOrders];
+    const now = Date.now();
+
+    if (this.state.depDateFilter === '7D') {
+      filtered = filtered.filter(o => (now - new Date(o.timestamp).getTime()) <= 7 * 24 * 60 * 60 * 1000);
+    } else if (this.state.depDateFilter === '30D') {
+      filtered = filtered.filter(o => (now - new Date(o.timestamp).getTime()) <= 30 * 24 * 60 * 60 * 1000);
+    } else if (this.state.depDateFilter === '90D') {
+      filtered = filtered.filter(o => (now - new Date(o.timestamp).getTime()) <= 90 * 24 * 60 * 60 * 1000);
+    }
+
+    if (this.state.depStatusFilter !== 'ALL') {
+      filtered = filtered.filter(o => o.status.toUpperCase() === this.state.depStatusFilter);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="card text-center text-muted" style="padding: 2rem;">No deposit buy orders match your selected filters.</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(o => {
+      let badgeClass = 'badge-processing';
+      if (o.status === 'Submit') badgeClass = 'badge-submit';
+      if (o.status === 'Success') badgeClass = 'badge-success-green';
+      if (o.status === 'Close') badgeClass = 'badge-close-red';
+
+      return `
+        <div class="card" style="margin-bottom: 12px; border-left: 4px solid var(--primary-orange);">
+          <div class="flex-between">
+            <strong class="text-orange" style="font-size:0.9rem;">#DEP-${o.id}</strong>
+            <span class="status-badge-pill ${badgeClass}">${o.status}</span>
+          </div>
+
+          <div class="flex-between margin-top-1">
+            <div>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Amount</span>
+              <h4 style="font-family:var(--font-heading); font-size:1.3rem; font-weight:800; color:var(--text-dark);">₹ ${o.amount.toFixed(2)}</h4>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size:0.75rem; color:var(--text-muted);">USDT Equivalent</span>
+              <h4 style="font-family:var(--font-heading); font-size:1.1rem; font-weight:800; color:var(--primary-orange);">${o.usdtAmount || Math.round(o.amount / 110)} USDT</h4>
+            </div>
+          </div>
+
+          <div class="flex-between margin-top-1" style="font-size:0.75rem; color:var(--text-medium); border-top:1px solid var(--border-color); padding-top:8px;">
+            <span><i class="fa-regular fa-credit-card text-orange"></i> ${o.paymentChannel || 'Paytm Wallet'}</span>
+            <span><i class="fa-regular fa-clock"></i> ${new Date(o.timestamp).toLocaleString()}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  copyAdminUpiId() {
+    const upiId = document.getElementById('displayAdminUpiId')?.textContent || 'fintechpay@upi';
+    navigator.clipboard.writeText(upiId);
+    this.showToast(`Merchant UPI ID ${upiId} copied to clipboard!`, 'success');
+  },
+
+  handleCreateDepositOrder(e) {
+    if (e) e.preventDefault();
+    const amount = Number(document.getElementById('depAmountInput').value);
+    const paymentChannel = document.getElementById('depChannelSelect').value;
+
+    if (!amount || amount <= 0) {
+      return this.showToast('Please enter a valid deposit amount', 'danger');
+    }
+
+    const rate = this.state.stats?.exchangeRate || 110;
+    const usdtVal = (amount / rate).toFixed(2);
+    const upiId = this.state.stats?.adminUpiId || '8104229900@upi';
+    const merchantName = this.state.stats?.merchantName || 'Fintech Hub';
+
+    // Construct Dynamic UPI Deep Link URI & QR Code API
+    const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount.toFixed(2)}&cu=INR&tn=Deposit%20Order`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiUri)}`;
+
+    document.getElementById('paySummaryInr').textContent = `₹ ${amount.toFixed(2)}`;
+    document.getElementById('paySummaryUsdt').textContent = `${usdtVal} USDT`;
+    
+    if (document.getElementById('displayAdminUpiId')) {
+      document.getElementById('displayAdminUpiId').textContent = upiId;
+    }
+
+    // Render QR Code using Client-side QRCode library if available
+    const qrBox = document.getElementById('qrcodeCanvasBox');
+    const qrImg = document.getElementById('displayDynamicQrCode');
+
+    if (qrBox) {
+      qrBox.innerHTML = '';
+      if (typeof QRCode !== 'undefined') {
+        try {
+          new QRCode(qrBox, {
+            text: upiUri,
+            width: 190,
+            height: 190,
+            colorDark: "#1e1e2d",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          if (qrImg) qrImg.style.display = 'none';
+        } catch (err) {
+          if (qrImg) {
+            qrImg.style.display = 'block';
+            qrImg.src = qrApiUrl;
+          }
+        }
+      } else if (qrImg) {
+        qrImg.style.display = 'block';
+        qrImg.src = qrApiUrl;
+      }
+    } else if (qrImg) {
+      qrImg.style.display = 'block';
+      qrImg.src = qrApiUrl;
+    }
+
+    if (document.getElementById('qrAmountBadge')) {
+      document.getElementById('qrAmountBadge').textContent = `₹ ${amount.toFixed(2)}`;
+    }
+    if (document.getElementById('payBtnAmountText')) {
+      document.getElementById('payBtnAmountText').textContent = `₹ ${amount.toFixed(2)}`;
+    }
+    if (document.getElementById('btnDirectUpiPayLink')) {
+      document.getElementById('btnDirectUpiPayLink').href = upiUri;
+    }
+
+    if (document.getElementById('payMethodUsedSelect')) {
+      document.getElementById('payMethodUsedSelect').value = paymentChannel || 'Paytm Wallet / UPI';
+    }
+
+    document.getElementById('modalDepositPayment')?.classList.add('active');
+  },
+
+  async handleConfirmDepositPayment(e) {
+    if (e) e.preventDefault();
+    const amount = Number(document.getElementById('depAmountInput').value);
+    const paymentChannel = document.getElementById('payMethodUsedSelect').value;
+    const utrNumber = document.getElementById('payUtrInput').value.trim();
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+
+    if (!utrNumber || utrNumber.length < 6) {
+      return this.showToast('Please enter valid 12-digit UTR / Reference Number', 'danger');
+    }
+
+    try {
+      const res = await fetch('/api/user/topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, userId, paymentChannel, utrNumber })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      document.getElementById('modalDepositPayment')?.classList.remove('active');
+      document.getElementById('depAmountInput').value = '';
+      document.getElementById('payUtrInput').value = '';
+
+      this.showToast(`Deposit Order #${data.order.id} submitted! UTR: ${utrNumber}. Admin approval pending.`, 'success');
+      await this.loadDepositBuyOrders();
+      await this.loadUser();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  // SCORE ROLL OUT CONTROLLER
+  openScoreDetailView() {
+    this.switchAppTab('score-detail');
+  },
+
+  calcScoreInrPreview() {
+    const inputVal = Number(document.getElementById('convertScoreInput').value) || 0;
+    const scoreRate = this.state.stats?.scoreRate || 10.00;
+    const calculatedInr = (inputVal / 100) * scoreRate;
+    document.getElementById('previewRollOutInr').textContent = calculatedInr.toFixed(2);
+  },
+
+  async handleScoreConvert(e) {
+    if (e) e.preventDefault();
+    const points = Number(document.getElementById('convertScoreInput').value);
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+
+    try {
+      const res = await fetch('/api/user/convert-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, points })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.showToast(data.message, 'success');
+      document.getElementById('convertScoreInput').value = '';
+      document.getElementById('previewRollOutInr').textContent = '0.00';
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  bindAppNavigation() {
+    document.querySelectorAll('.nav-tab-item').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const targetTab = e.currentTarget.getAttribute('data-tab');
+        this.switchAppTab(targetTab);
+      });
+    });
+  },
+
+  switchAppTab(tabId) {
+    this.state.activeAppTab = tabId;
+
+    document.querySelectorAll('.nav-tab-item').forEach(tab => {
+      tab.classList.toggle('active', tab.getAttribute('data-tab') === tabId);
+    });
+
+    document.querySelectorAll('.app-tab-view').forEach(view => {
+      view.classList.toggle('active', view.id === `tab-${tabId}`);
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  // DATA LOADERS
+  async loadAllAppData() {
+    try {
+      await Promise.all([
+        this.loadUser(),
+        this.loadStats(),
+        this.loadOffers(),
+        this.loadWallets(),
+        this.loadTasks(),
+        this.loadNotifications(),
+        this.loadDepositBuyOrders(),
+        this.loadSellOrders()
+      ]);
+      this.renderHomeTransactions();
+    } catch (err) {
+      console.error('Data loading error:', err);
+    }
+  },
+
+  renderHomeTransactions() {
+    const emptyState = document.getElementById('txnEmptyState');
+    const txnList = document.getElementById('txnList');
+    if (!txnList) return;
+
+    const allOrders = [
+      ...(this.state.depositOrders || []).map(o => ({ ...o, itemCategory: 'Deposit' })),
+      ...(this.state.sellOrders || []).map(o => ({ ...o, itemCategory: 'Withdrawal' }))
+    ];
+
+    allOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (allOrders.length === 0) {
+      if (emptyState) emptyState.style.display = 'block';
+      txnList.style.display = 'none';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    txnList.style.display = 'block';
+
+    txnList.innerHTML = allOrders.map(o => {
+      let badgeClass = 'badge-processing';
+      if (o.status === 'Pending') badgeClass = 'badge-pending';
+      if (o.status === 'Submit' || o.status === 'Submitted') badgeClass = 'badge-submit';
+      if (o.status === 'Success') badgeClass = 'badge-success-green';
+      if (o.status === 'Timeout') badgeClass = 'badge-timeout';
+      if (o.status === 'Close') badgeClass = 'badge-close-red';
+
+      const isDeposit = o.itemCategory === 'Deposit';
+      const icon = isDeposit ? 'fa-arrow-up text-orange' : 'fa-arrow-down text-blue';
+      const orderPrefix = isDeposit ? 'DEP' : 'SELL';
+
+      return `
+        <div style="background:#ffffff; padding:12px; border-radius:12px; margin-bottom:10px; border:1px solid var(--orange-border); display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:38px; height:38px; border-radius:50%; background:var(--orange-light); display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+              <i class="fa-solid ${icon}"></i>
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <strong style="font-size:0.88rem; color:var(--text-dark);">#${orderPrefix}-${o.id}</strong>
+                <span class="status-badge-pill ${badgeClass}">${o.status}</span>
+              </div>
+              <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:2px;">${o.paymentChannel || o.payoutBank || 'Wallet'} • ${new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <strong style="font-family:var(--font-heading); font-size:1.05rem; color:${isDeposit ? 'var(--primary-orange)' : 'var(--accent-blue)'};">${isDeposit ? '+' : '-'}₹ ${o.amount.toFixed(2)}</strong>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">${o.usdtAmount || Math.round(o.amount / 110)} USDT</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  async loadUser() {
+    const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const res = await fetch(`/api/user?id=${activeId}`);
+    const user = await res.json();
+    this.state.currentUser = user;
+
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userId').textContent = user.id;
+
+    document.getElementById('homeBalance').textContent = user.balance.toFixed(2);
+    document.getElementById('homeDeposit').textContent = user.deposit.toFixed(2);
+    document.getElementById('homeWithdrawal').textContent = user.withdrawal.toFixed(2);
+
+    // Score Page Data
+    document.getElementById('userScoreDisplay').textContent = (user.scorePoints || 0).toLocaleString();
+    document.getElementById('scoreBalVal').textContent = user.balance.toFixed(2);
+    document.getElementById('scoreDepVal').textContent = user.deposit.toFixed(2);
+    document.getElementById('scoreWithVal').textContent = user.withdrawal.toFixed(2);
+    document.getElementById('scoreCommVal').textContent = user.commission.toFixed(2);
+
+    document.getElementById('paymentBalance').textContent = user.balance.toFixed(0);
+    document.getElementById('paymentReward').textContent = user.cashbackReward || 0;
+    document.getElementById('paymentPending').textContent = user.cashbackPending || 0;
+
+    document.getElementById('statBalance').textContent = user.balance.toFixed(2);
+    document.getElementById('statSell').textContent = (user.sellTotal || 0).toFixed(2);
+    document.getElementById('statDeposit').textContent = user.deposit.toFixed(2);
+    document.getElementById('statCommission').textContent = user.commission.toFixed(2);
+
+    document.getElementById('assetDeposit').textContent = user.deposit.toFixed(0);
+    document.getElementById('assetWithdraw').textContent = user.withdrawal.toFixed(0);
+    document.getElementById('assetCommission').textContent = user.commission.toFixed(0);
+
+    document.getElementById('mdlBal').textContent = user.balance.toFixed(2);
+    document.getElementById('mdlDep').textContent = user.deposit.toFixed(2);
+    document.getElementById('mdlWith').textContent = user.withdrawal.toFixed(2);
+    document.getElementById('mdlComm').textContent = user.commission.toFixed(2);
+  },
+
+  async loadStats() {
+    const res = await fetch('/api/stats');
+    const stats = await res.json();
+    this.state.stats = stats;
+
+    document.getElementById('quickUsdtRate').textContent = `${stats.exchangeRate}INR`;
+    document.getElementById('scoreRateBadge').textContent = `100 Score = ₹ ${stats.scoreRate || 10} INR`;
+    document.getElementById('statExchangeRate').textContent = stats.exchangeRate;
+    document.getElementById('statInProcessAmt').textContent = stats.inProcessAmount.toFixed(2);
+    document.getElementById('statInProcessOrders').textContent = stats.inProcessOrders;
+    document.getElementById('statCommissionRate').textContent = stats.commissionRate.toFixed(2);
+    document.getElementById('statEstIncome').textContent = stats.estimatedIncome.toFixed(2);
+    document.getElementById('appVersionDisplay').textContent = stats.appVersion || 'v1.1.9';
+
+    const btnSell = document.getElementById('btnToggleSelling');
+    if (btnSell) {
+      if (stats.isSellingOpen) {
+        btnSell.textContent = 'Selling Active (Open)';
+        btnSell.style.background = '#ff6600';
+      } else {
+        btnSell.textContent = 'Closed Selling';
+        btnSell.style.background = '#f59e0b';
+      }
+    }
+  },
+
+  async loadOffers() {
+    const res = await fetch('/api/payment/offers');
+    const offers = await res.json();
+    this.state.offers = offers;
+    this.renderOffers();
+  },
+
+  async loadWallets() {
+    const res = await fetch('/api/wallets');
+    const wallets = await res.json();
+    this.state.wallets = wallets;
+    this.renderWallets();
+  },
+
+  async loadTasks() {
+    const res = await fetch('/api/tasks');
+    const tasks = await res.json();
+    this.state.tasks = tasks;
+    this.renderTasks();
+  },
+
+  // NOTIFICATIONS CONTROLLER
+  async loadNotifications() {
+    const res = await fetch('/api/notifications');
+    const data = await res.json();
+    this.state.notifications = data.notifications;
+    this.state.unreadCount = data.unreadCount;
+
+    const badge = document.getElementById('bellUnreadBadge');
+    if (badge) {
+      if (data.unreadCount > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = data.unreadCount;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    this.renderNotifications();
+  },
+
+  filterNotifs(filter) {
+    this.state.notifFilter = filter;
+    document.getElementById('chipNotifAll')?.classList.toggle('active', filter === 'ALL');
+    document.getElementById('chipNotifUnread')?.classList.toggle('active', filter === 'UNREAD');
+    this.renderNotifications();
+  },
+
+  renderNotifications() {
+    const container = document.getElementById('notificationsContainer');
+    if (!container) return;
+
+    let filtered = [...this.state.notifications];
+    if (this.state.notifFilter === 'UNREAD') {
+      filtered = filtered.filter(n => !n.isRead);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="text-center text-muted" style="padding: 2rem;">No ${this.state.notifFilter === 'UNREAD' ? 'unread' : ''} notifications.</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(n => `
+      <div style="background:${n.isRead ? '#ffffff' : 'var(--orange-light)'}; padding:12px; border-radius:12px; margin-bottom:10px; border:1px solid var(--orange-border); position:relative;">
+        <div class="flex-between">
+          <strong style="color:${n.isRead ? 'var(--text-dark)' : 'var(--primary-orange)'};">${n.title}</strong>
+          <span style="font-size:0.7rem; color:var(--text-muted);">${n.time}</span>
+        </div>
+        <p style="font-size:0.82rem; margin-top:4px; color:var(--text-medium);">${n.body}</p>
+        <div class="flex-between margin-top-1" style="font-size:0.75rem;">
+          <span class="special-tag">${n.type || 'System'}</span>
+          ${!n.isRead ? `<button class="auth-switch-link" onclick="FintechApp.markNotifRead(${n.id})" style="font-size:0.75rem;">Mark as Read</button>` : `<span class="text-muted"><i class="fa-solid fa-check"></i> Read</span>`}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  async markNotifRead(id) {
+    const res = await fetch('/api/notifications/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    const data = await res.json();
+    await this.loadNotifications();
+  },
+
+  async markAllNotifsRead() {
+    const res = await fetch('/api/notifications/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markAll: true })
+    });
+    const data = await res.json();
+    this.showToast('All notifications marked as read!', 'success');
+    await this.loadNotifications();
+  },
+
+  renderOffers() {
+    const container = document.getElementById('paymentOffersList');
+    if (!container) return;
+
+    let filtered = [...this.state.offers];
+    if (this.state.filterCategory !== 'ALL') {
+      filtered = filtered.filter(o => o.category === this.state.filterCategory);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="text-center text-muted" style="padding: 2rem;">No offers in this category.</div>`;
+      return;
+    }
+
+    const isSpecialOn = this.state.stats?.specialRewardActive !== false;
+
+    container.innerHTML = filtered.map(o => `
+      <div class="offer-card">
+        <div class="offer-left">
+          <h3>INR</h3>
+          <div class="offer-amt">Amount: <strong>∫ ${o.amount}</strong></div>
+          <div class="offer-income">
+            Income: +${o.income.toFixed(2)}
+            ${isSpecialOn ? `<span class="special-tag">+ ∫ ${o.specialBonus.toFixed(2)} Special</span>` : ''}
+          </div>
+        </div>
+        <div class="offer-right" style="text-align: right;">
+          <div class="offer-code" style="margin-bottom: 8px;">Code: ${o.code}</div>
+          <button class="btn-orange-pill btn-claim-offer" data-id="${o.id}">Claim</button>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.btn-claim-offer').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        this.claimOffer(id);
+      });
+    });
+  },
+
+  // TOOL & PAYMENT OPTIONS CONTROLLER (MATCHING SCREENSHOTS)
+  openAddToolSubView() {
+    const mainView = document.getElementById('toolMainView');
+    const subView = document.getElementById('addToolSubView');
+    if (mainView) mainView.style.display = 'none';
+    if (subView) subView.style.display = 'block';
+    this.renderPaymentToolOptions();
+  },
+
+  backToToolMainView() {
+    const mainView = document.getElementById('toolMainView');
+    const subView = document.getElementById('addToolSubView');
+    if (subView) subView.style.display = 'none';
+    if (mainView) mainView.style.display = 'block';
+  },
+
+  switchToolSegment(segment) {
+    this.state.activeToolSegment = segment;
+    document.getElementById('btnToolTabPersonal')?.classList.toggle('active', segment === 'Personal');
+    document.getElementById('btnToolTabBusiness')?.classList.toggle('active', segment === 'Business');
+    
+    const catalog = this.state.paymentToolsCatalog[segment] || [];
+    if (catalog.length > 0) {
+      this.state.selectedToolOption = catalog[0].name;
+    }
+    this.renderPaymentToolOptions();
+  },
+
+  renderPaymentToolOptions() {
+    const container = document.getElementById('paymentToolsOptionsContainer');
+    if (!container) return;
+
+    const currentSegment = this.state.activeToolSegment || 'Personal';
+    const toolsList = this.state.paymentToolsCatalog[currentSegment] || [];
+
+    container.innerHTML = toolsList.map(t => {
+      const isSelected = t.name === this.state.selectedToolOption;
+      return `
+        <div class="payment-option-card ${isSelected ? 'selected' : ''}" data-name="${t.name}">
+          <div class="payment-card-left">
+            <div class="payment-icon-box ${t.iconClass}">${t.iconText}</div>
+            <div class="payment-card-info">
+              <div class="payment-card-title">${t.name}</div>
+              ${t.sub ? `<div class="payment-card-sub">${t.sub}</div>` : ''}
+            </div>
+          </div>
+          ${t.payout ? `<div class="payment-card-right"><span class="payout-label">Payout</span></div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.payment-option-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const name = e.currentTarget.getAttribute('data-name');
+        this.state.selectedToolOption = name;
+        this.renderPaymentToolOptions();
+      });
+    });
+  },
+
+  confirmToolSelection() {
+    const selectedName = this.state.selectedToolOption || 'Freecharge';
+    const titleElem = document.getElementById('modalSelectedToolTitle');
+    const nameInput = document.getElementById('toolSelectedNameInput');
+    const typeInput = document.getElementById('toolSelectedTypeInput');
+    const labelElem = document.getElementById('lblToolAddressInput');
+
+    if (titleElem) titleElem.textContent = selectedName;
+    if (nameInput) nameInput.value = selectedName;
+    if (typeInput) typeInput.value = this.state.activeToolSegment || 'Personal';
+    if (labelElem) labelElem.textContent = `${selectedName} Number / VPA / Account`;
+
+    document.getElementById('modalToolDetailsInput')?.classList.add('active');
+  },
+
+  async deleteWalletTool(id) {
+    if (!confirm('Are you sure you want to remove this payment tool?')) return;
+    try {
+      const res = await fetch(`/api/wallets/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      this.showToast('Payment tool removed successfully', 'info');
+      await this.loadWallets();
+    } catch (e) {
+      this.showToast(e.message || 'Failed to remove tool', 'danger');
+    }
+  },
+
+  renderWallets() {
+    const emptyState = document.getElementById('toolEmptyState');
+    const listContainer = document.getElementById('walletsList');
+    const content = document.getElementById('savedWalletsListContent');
+
+    if (!this.state.wallets.length) {
+      if (emptyState) emptyState.style.display = 'block';
+      if (listContainer) listContainer.style.display = 'none';
+    } else {
+      if (emptyState) emptyState.style.display = 'none';
+      if (listContainer) listContainer.style.display = 'block';
+
+      if (content) {
+        content.innerHTML = this.state.wallets.map(w => `
+          <div class="saved-tool-card">
+            <div class="saved-tool-header">
+              <div class="saved-tool-left">
+                <strong class="saved-tool-title">${w.name}</strong>
+                <span class="saved-tool-type">${w.type || 'Personal'}</span>
+              </div>
+              <button class="btn btn-secondary btn-delete-tool" data-id="${w.id}" title="Remove Tool" style="padding: 4px 10px; font-size: 0.75rem; color: #ef4444;">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+            ${w.holderName ? `<div style="font-size: 0.82rem; color: var(--text-medium); margin-top: 4px;">Holder: <strong>${w.holderName}</strong></div>` : ''}
+            <div class="saved-tool-address">${w.address}</div>
+          </div>
+        `).join('');
+
+        content.querySelectorAll('.btn-delete-tool').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = Number(e.currentTarget.getAttribute('data-id'));
+            this.deleteWalletTool(id);
+          });
+        });
+      }
+    }
+  },
+
+  // PIN CODE CONTROLLER (MATCHING USER SCREENSHOT)
+  openPinCodeView() {
+    this.switchAppTab('pincode');
+    document.querySelectorAll('.pin-box').forEach(b => b.value = '');
+    setTimeout(() => {
+      document.querySelector('.pin-box[data-group="old"][data-idx="0"]')?.focus();
+    }, 100);
+  },
+
+  initPinBoxAutoAdvance() {
+    document.querySelectorAll('.pin-box').forEach(box => {
+      box.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const group = e.target.getAttribute('data-group');
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+
+        if (val.length >= 1) {
+          e.target.value = val.slice(-1);
+          const nextBox = document.querySelector(`.pin-box[data-group="${group}"][data-idx="${idx + 1}"]`);
+          if (nextBox) {
+            nextBox.focus();
+          } else {
+            if (group === 'old') {
+              document.querySelector('.pin-box[data-group="new"][data-idx="0"]')?.focus();
+            } else if (group === 'new') {
+              document.querySelector('.pin-box[data-group="confirm"][data-idx="0"]')?.focus();
+            }
+          }
+        }
+      });
+
+      box.addEventListener('keydown', (e) => {
+        const group = e.target.getAttribute('data-group');
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+
+        if (e.key === 'Backspace' && !e.target.value) {
+          const prevBox = document.querySelector(`.pin-box[data-group="${group}"][data-idx="${idx - 1}"]`);
+          if (prevBox) {
+            prevBox.focus();
+          } else {
+            if (group === 'confirm') {
+              document.querySelector('.pin-box[data-group="new"][data-idx="5"]')?.focus();
+            } else if (group === 'new') {
+              document.querySelector('.pin-box[data-group="old"][data-idx="5"]')?.focus();
+            }
+          }
+        }
+      });
+    });
+  },
+
+  confirmPinCodeChange() {
+    const getPinGroup = (group) => {
+      return Array.from(document.querySelectorAll(`.pin-box[data-group="${group}"]`))
+        .map(b => b.value)
+        .join('');
+    };
+
+    const oldPin = getPinGroup('old');
+    const newPin = getPinGroup('new');
+    const confirmPin = getPinGroup('confirm');
+
+    if (newPin.length < 6) {
+      return this.showToast('Please enter complete 6-digit New Pin', 'danger');
+    }
+
+    if (newPin !== confirmPin) {
+      return this.showToast('New Pin and Confirm Pin do not match!', 'danger');
+    }
+
+    this.showToast('Security PIN updated successfully!', 'success');
+    this.switchAppTab('my');
+  },
+
+  renderTasks() {
+    const container = document.getElementById('taskCenterContainer');
+    if (!container) return;
+
+    container.innerHTML = this.state.tasks.map(t => `
+      <div class="detail-row flex-between" style="padding: 10px 0;">
+        <div>
+          <strong>${t.title}</strong>
+          <span style="display:block; font-size:0.75rem; color:var(--primary-orange);">${t.reward}</span>
+        </div>
+        <button class="btn-orange-pill" onclick="FintechApp.showToast('Task complete bonus credited!', 'success')" style="padding: 4px 12px; font-size:0.75rem;">Complete</button>
+      </div>
+    `).join('');
+  },
+
+  bindAppEvents() {
+    document.getElementById('btnCopyId')?.addEventListener('click', () => {
+      const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+      navigator.clipboard.writeText(activeId);
+      this.showToast(`User ID ${activeId} copied to clipboard!`, 'success');
+    });
+
+    document.getElementById('btnNotificationsBell')?.addEventListener('click', () => {
+      document.getElementById('modalNotifications')?.classList.add('active');
+    });
+
+    document.getElementById('btnQuickUsdt')?.addEventListener('click', () => {
+      this.openUsdtDepositView();
+    });
+    document.getElementById('btnQuickTask')?.addEventListener('click', () => {
+      this.openTaskRewardsView();
+    });
+    document.getElementById('btnQuickTeam')?.addEventListener('click', () => {
+      this.openTeamView();
+    });
+    document.getElementById('btnQuickOrder')?.addEventListener('click', () => {
+      document.getElementById('modalOrderCenter')?.classList.add('active');
+    });
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.state.filterCategory = e.currentTarget.getAttribute('data-filter');
+        this.renderOffers();
+      });
+    });
+
+    // TOOL TAB & ADD TOOL NAVIGATION EVENT LISTENERS
+    document.getElementById('btnOpenAddToolView')?.addEventListener('click', () => {
+      this.openAddToolSubView();
+    });
+
+    document.getElementById('btnAddNewToolHeader')?.addEventListener('click', () => {
+      this.openAddToolSubView();
+    });
+
+    document.getElementById('btnBackToToolMain')?.addEventListener('click', () => {
+      this.backToToolMainView();
+    });
+
+    document.getElementById('btnToolTabPersonal')?.addEventListener('click', () => {
+      this.switchToolSegment('Personal');
+    });
+
+    document.getElementById('btnToolTabBusiness')?.addEventListener('click', () => {
+      this.switchToolSegment('Business');
+    });
+
+    document.getElementById('btnConfirmToolSelection')?.addEventListener('click', () => {
+      this.confirmToolSelection();
+    });
+
+    document.getElementById('formSubmitToolDetails')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const walletName = document.getElementById('toolSelectedNameInput').value;
+      const walletType = document.getElementById('toolSelectedTypeInput').value;
+      const walletAddress = document.getElementById('toolAccountAddressInput').value;
+      const holderName = document.getElementById('toolHolderNameInput').value;
+
+      try {
+        const res = await fetch('/api/wallets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletName, walletAddress, walletType, holderName })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById('modalToolDetailsInput')?.classList.remove('active');
+        e.target.reset();
+        this.showToast(`${walletName} payment tool saved successfully!`, 'success');
+        this.backToToolMainView();
+        await this.loadWallets();
+      } catch (err) {
+        this.showToast(err.message, 'danger');
+      }
+    });
+
+    document.getElementById('formConfirmDepositPayment')?.addEventListener('submit', (e) => {
+      this.handleConfirmDepositPayment(e);
+    });
+
+    document.getElementById('btnToggleSelling')?.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/stats/toggle-selling', { method: 'POST' });
+        const data = await res.json();
+        this.showToast(`Selling status: ${data.isSellingOpen ? 'OPEN' : 'CLOSED'}`, 'info');
+        await this.loadStats();
+      } catch (e) {
+        this.showToast('Failed to toggle selling state', 'danger');
+      }
+    });
+
+    document.getElementById('btnAssetWallet')?.addEventListener('click', () => this.switchAppTab('tool'));
+    document.getElementById('btnAssetService')?.addEventListener('click', () => document.getElementById('modalSupportChat')?.classList.add('active'));
+    document.getElementById('btnAssetMessage')?.addEventListener('click', () => document.getElementById('modalNotifications')?.classList.add('active'));
+    document.getElementById('btnAssetPin')?.addEventListener('click', () => this.openPinCodeView());
+
+    // PIN CODE SCREEN EVENT LISTENERS
+    document.getElementById('btnBackFromPin')?.addEventListener('click', () => this.switchAppTab('my'));
+    document.getElementById('btnCancelPin')?.addEventListener('click', () => this.switchAppTab('my'));
+    document.getElementById('btnConfirmPin')?.addEventListener('click', () => this.confirmPinCodeChange());
+    this.initPinBoxAutoAdvance();
+
+    document.getElementById('floatingBotWidget')?.addEventListener('click', () => {
+      document.getElementById('modalSupportChat')?.classList.add('active');
+    });
+
+    document.getElementById('btnSendChat')?.addEventListener('click', () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const box = document.getElementById('chatMessagesBox');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'chat-msg';
+      userMsg.style.background = '#ffffff';
+      userMsg.style.color = 'var(--text-dark)';
+      userMsg.style.textAlign = 'right';
+      userMsg.textContent = text;
+      box.appendChild(userMsg);
+      input.value = '';
+
+      setTimeout(() => {
+        const reply = document.createElement('div');
+        reply.className = 'chat-msg';
+        reply.textContent = 'Support Agent: We have received your query. A representative will contact you shortly!';
+        box.appendChild(reply);
+        box.scrollTop = box.scrollHeight;
+      }, 1000);
+    });
+
+    // LOGOUT ACCOUNT
+    document.getElementById('btnLogout')?.addEventListener('click', () => {
+      if (confirm('Are you sure you want to logout of your account?')) {
+        localStorage.removeItem('fintech_user_token');
+        localStorage.removeItem('fintech_user_data');
+        this.state.authToken = null;
+        this.state.currentUser = null;
+        this.showAuthOverlay();
+        this.showToast('Logged out of session', 'info');
+      }
+    });
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-close');
+        document.getElementById(id)?.classList.remove('active');
+      });
+    });
+  },
+
+  async claimOffer(offerId) {
+    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    try {
+      const res = await fetch('/api/payment/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId, userId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.showToast(`Claimed! Earned ₹ ${data.earned.toFixed(2)} commission & +50 Score Points!`, 'success');
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    
+    let iconClass = 'fa-circle-info text-orange';
+    if (type === 'success') iconClass = 'fa-circle-check text-orange';
+    if (type === 'danger') iconClass = 'fa-triangle-exclamation text-rose';
+
+    toast.innerHTML = `<i class="fa-solid ${iconClass}"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+};

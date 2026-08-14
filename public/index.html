@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INR/USDT Fintech Platform, Deposit & Sell Orders</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- QRCode JS Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <style>
+    .auth-overlay-fixed {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; z-index: 10000;
+    }
+    .auth-overlay-fixed.active { display: flex; animation: fadeIn 0.2s ease-in-out; }
+
+    .auth-modal-card {
+      background: #ffffff; border-radius: 24px; padding: 2rem;
+      width: 420px; max-width: 92%; box-shadow: 0 25px 50px rgba(255, 102, 0, 0.25);
+      border: 2px solid var(--orange-border); position: relative;
+    }
+
+    .auth-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--orange-light); border: 1px solid var(--orange-border);
+      padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;
+      color: var(--primary-orange); margin-bottom: 1rem;
+    }
+
+    .btn-auth-submit {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6600, #e65c00);
+      color: #ffffff; border: none; border-radius: 30px; font-weight: 800; font-size: 1.05rem;
+      cursor: pointer; box-shadow: var(--shadow-orange); margin-top: 0.5rem; transition: 0.2s;
+    }
+
+    .auth-switch-link {
+      background: none; border: none; color: var(--primary-orange); font-weight: 800;
+      font-size: 0.9rem; cursor: pointer; text-decoration: underline; margin-left: 6px;
+    }
+
+    .demo-login-chip {
+      background: var(--orange-light); border: 1px dashed var(--primary-orange);
+      color: var(--primary-orange); padding: 8px 12px; border-radius: 12px;
+      font-size: 0.8rem; font-weight: 700; cursor: pointer; margin-top: 1rem; width: 100%; text-align: center;
+    }
+
+    .bell-count-badge {
+      position: absolute; top: -4px; right: -6px; background: #ef4444; color: #fff;
+      font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 10px; border: 2px solid #fff;
+    }
+
+    /* Score Card Styles */
+    .score-banner-card {
+      background: linear-gradient(135deg, #f59e0b, #ff6600);
+      border-radius: var(--radius-lg); padding: 1.5rem; color: #ffffff;
+      margin-bottom: 1.25rem; box-shadow: var(--shadow-orange); text-align: center;
+    }
+    .score-value-big { font-family: var(--font-heading); font-size: 2.6rem; font-weight: 900; line-height: 1.1; margin-top: 4px; }
+
+    /* Dual Filter Grid Bar */
+    .dual-filter-bar {
+      display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.2rem;
+      background: #ffffff; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--orange-border);
+    }
+    .filter-label-sm { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
+
+    .status-badge-pill {
+      padding: 4px 10px; border-radius: 12px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase;
+    }
+    .badge-processing { background: #dbeafe; color: #1d4ed8; }
+    .badge-submit { background: #fef3c7; color: #b45309; }
+    .badge-success-green { background: #dcfce7; color: #15803d; }
+    .badge-close-red { background: #fee2e2; color: #b91c1c; }
+    .badge-pending { background: #fff8dd; color: #d97706; }
+    .badge-timeout { background: #f3f4f6; color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <!-- MAINTENANCE OVERLAY -->
+  <div id="maintenanceOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fffaf6; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
+    <div style="width: 90px; height: 90px; border-radius: 50%; background: var(--orange-light); border: 3px solid var(--primary-orange); display: flex; align-items: center; justify-content: center; font-size: 2.8rem; color: var(--primary-orange); margin-bottom: 1.5rem;">
+      <i class="fa-solid fa-screwdriver-wrench"></i>
+    </div>
+    <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--primary-orange); margin-bottom: 0.5rem;">System Under Maintenance</h2>
+    <p style="color: var(--text-medium); font-size: 1rem; max-width: 360px; line-height: 1.6;">We are currently upgrading server systems to serve you better. Please check back shortly!</p>
+  </div>
+
+  <!-- App Shell -->
+  <div class="app-main-wrapper">
+
+    <!-- Global Desktop Navigation Header (Hidden on Mobile) -->
+    <header class="top-nav-bar desktop-only">
+      <div class="nav-brand">
+        <div class="logo-box"><i class="fa-solid fa-wallet text-orange"></i></div>
+        <h2>FINTECH<span>HUB</span></h2>
+      </div>
+
+      <div class="nav-mode-toggle">
+        <button id="btnViewAppMode" class="nav-mode-btn active"><i class="fa-solid fa-mobile-screen"></i> Mobile App View</button>
+        <a href="/admin" target="_blank" class="nav-mode-btn admin-mode-btn"><i class="fa-solid fa-user-shield"></i> Open PC Admin Dashboard</a>
+      </div>
+    </header>
+
+    <!-- 100% ACTIVE USER AUTHENTICATION OVERLAY -->
+    <div id="userAuthOverlay" class="auth-overlay-fixed active">
+      
+      <!-- LOGIN VIEW CARD -->
+      <div id="cardUserLogin" class="auth-modal-card">
+        <button type="button" style="position:absolute; top:18px; right:20px; background:none; border:none; font-size:1.5rem; color:var(--text-muted); cursor:pointer;" onclick="FintechApp.closeAuth()">&times;</button>
+        
+        <div class="auth-badge">
+          <i class="fa-solid fa-wallet text-orange"></i>
+          <span>FINTECH HUB</span>
+        </div>
+        <h2>User Login</h2>
+        <p class="auth-subtitle" style="font-size:0.85rem; color:var(--text-medium); margin: 4px 0 1.2rem 0;">Enter your mobile phone number and password to sign in.</p>
+        
+        <form id="formUserLogin" onsubmit="FintechApp.handleLogin(event)">
+          <div class="form-group">
+            <label><i class="fa-solid fa-mobile-screen"></i> Mobile Number / User ID</label>
+            <input type="text" id="loginInputStr" class="form-control" placeholder="e.g. 9876543210 or 310422" value="310422" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-lock"></i> Password</label>
+            <div class="pass-input-box">
+              <input type="password" id="loginPasswordStr" class="form-control" placeholder="Password (e.g. 123)" value="123" required>
+              <button type="button" class="btn-toggle-pass" onclick="FintechApp.togglePassVisibility('loginPasswordStr')"><i class="fa-regular fa-eye"></i></button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-auth-submit">Sign In Now</button>
+        </form>
+
+        <button type="button" class="demo-login-chip" onclick="FintechApp.demoLoginRajju()"><i class="fa-solid fa-bolt"></i> 1-Tap Demo Login (Rajju - 310422)</button>
+
+        <div class="auth-switch-prompt" style="margin-top: 1.2rem; text-align: center; font-size: 0.85rem;">
+          <span>Don't have an account?</span>
+          <button type="button" class="auth-switch-link" onclick="FintechApp.showRegister()">Register Here</button>
+        </div>
+      </div>
+
+      <!-- REGISTER VIEW CARD -->
+      <div id="cardUserRegister" class="auth-modal-card" style="display: none;">
+        <button type="button" style="position:absolute; top:18px; right:20px; background:none; border:none; font-size:1.5rem; color:var(--text-muted); cursor:pointer;" onclick="FintechApp.closeAuth()">&times;</button>
+
+        <div class="auth-badge">
+          <i class="fa-solid fa-user-plus text-orange"></i>
+          <span>FINTECH HUB</span>
+        </div>
+        <h2>Create Account</h2>
+        <p class="auth-subtitle" style="font-size:0.85rem; color:var(--text-medium); margin: 4px 0 1.2rem 0;">Register to claim daily bonuses and cashback rewards.</p>
+        
+        <form id="formUserRegister" onsubmit="FintechApp.handleRegister(event)">
+          <div class="form-group">
+            <label><i class="fa-solid fa-user"></i> Full Name</label>
+            <input type="text" id="regName" class="form-control" placeholder="e.g. Rajju Kumar" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-phone"></i> Mobile Phone Number</label>
+            <input type="tel" id="regPhone" class="form-control" placeholder="e.g. 9876543210" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-key"></i> Password</label>
+            <div class="pass-input-box">
+              <input type="password" id="regPassword" class="form-control" placeholder="Create password" required>
+              <button type="button" class="btn-toggle-pass" onclick="FintechApp.togglePassVisibility('regPassword')"><i class="fa-regular fa-eye"></i></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-user-tag"></i> Referral Code</label>
+            <input type="text" id="regReferral" class="form-control" value="310422">
+          </div>
+
+          <button type="submit" class="btn-auth-submit">Register Account</button>
+        </form>
+
+        <div class="auth-switch-prompt" style="margin-top: 1.2rem; text-align: center; font-size: 0.85rem;">
+          <span>Already registered?</span>
+          <button type="button" class="auth-switch-link" onclick="FintechApp.showLogin()">Sign In Here</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MOBILE WEB APP VIEW (5-TAB INTERFACE) -->
+    <div id="view-mobile-app" class="mobile-app-shell">
+      
+      <!-- MAIN APP CONTENT -->
+      <div id="mainAppViews" class="app-views-container">
+
+        <!-- TAB 1: HOME -->
+        <section id="tab-home" class="app-tab-view active">
+          <!-- User Profile Bar -->
+          <div class="user-profile-header">
+            <div class="profile-left">
+              <div class="user-avatar-circle">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div class="user-meta">
+                <h3 id="userName">Rajju</h3>
+                <div class="user-id-row">
+                  <span>ID: <strong id="userId">310422</strong></span>
+                  <button class="btn-copy-id" id="btnCopyId" title="Copy ID"><i class="fa-regular fa-copy"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="profile-right" style="display:flex; gap:10px;">
+              <button class="btn-bell" id="btnNotificationsBell" title="Notifications" style="position:relative;">
+                <i class="fa-regular fa-bell"></i>
+                <span class="bell-count-badge" id="bellUnreadBadge">2</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Available Balance Orange Card -->
+          <div class="balance-card-orange">
+            <div class="balance-content">
+              <span class="balance-label">Available Balance</span>
+              <h2 class="balance-amount">₹ <span id="homeBalance">0.00</span></h2>
+            </div>
+            <button class="btn-detail-pill" id="btnBalanceDetail" onclick="FintechApp.openScoreDetailView()">Detail</button>
+          </div>
+
+          <!-- Deposit & Withdrawal Split Bar -->
+          <div class="deposit-withdraw-bar">
+            <div class="split-item blue-split" id="btnHomeDepositTrigger" style="cursor: pointer;" onclick="FintechApp.openDepositOrdersView()">
+              <div class="split-icon"><i class="fa-solid fa-arrow-up"></i></div>
+              <div class="split-data">
+                <span>Deposit</span>
+                <strong>₹ <span id="homeDeposit">0.00</span></strong>
+              </div>
+            </div>
+            <div class="split-divider"></div>
+            <div class="split-item yellow-split" id="btnHomeWithdrawTrigger" style="cursor: pointer;" onclick="FintechApp.openSellOrdersView()">
+              <div class="split-icon"><i class="fa-solid fa-arrow-down"></i></div>
+              <div class="split-data">
+                <span>Withdrawal</span>
+                <strong>₹ <span id="homeWithdrawal">0.00</span></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Icons Grid -->
+          <div class="quick-icons-grid">
+            <div class="quick-icon-item" id="btnQuickUsdt" style="cursor: pointer;" onclick="FintechApp.openUsdtDepositView()">
+              <div class="quick-icon-box usdt-box">
+                <i class="fa-solid fa-yen-sign text-orange"></i>
+                <span class="badge-usdt-rate" id="quickUsdtRate">110INR</span>
+              </div>
+              <span>USDT</span>
+            </div>
+
+            <div class="quick-icon-item" id="btnQuickTask" style="cursor: pointer;" onclick="FintechApp.openTaskRewardsView()">
+              <div class="quick-icon-box task-box">
+                <i class="fa-solid fa-list-ul text-orange"></i>
+              </div>
+              <span>Task</span>
+            </div>
+
+            <div class="quick-icon-item" id="btnQuickTeam" style="cursor: pointer;" onclick="FintechApp.openTeamView()">
+              <div class="quick-icon-box team-box">
+                <i class="fa-solid fa-user-plus text-orange"></i>
+              </div>
+              <span>Team</span>
+            </div>
+
+            <div class="quick-icon-item" id="btnQuickOrder" style="cursor: pointer;">
+              <div class="quick-icon-box order-box">
+                <i class="fa-solid fa-clipboard-list text-orange"></i>
+              </div>
+              <span>Order</span>
+            </div>
+          </div>
+
+          <!-- Transactions Card -->
+          <div class="card transactions-card">
+            <div class="card-header-flex">
+              <h3>Transactions</h3>
+              <a href="#" class="see-all-link" id="btnSeeAllTxns">See All</a>
+            </div>
+
+            <div class="empty-txn-state" id="txnEmptyState">
+              <p class="empty-title">No top-up orders yet</p>
+              <p class="empty-subtitle">Top up now and start the game!</p>
+              <button class="btn-orange-pill margin-top-1" id="btnTopUpNow" onclick="FintechApp.openDepositOrdersView()">Top up now</button>
+            </div>
+
+            <div class="txn-list" id="txnList" style="display: none;"></div>
+          </div>
+        </section>
+
+        <!-- DEDICATED USDT DEPOSIT & CALCULATOR SCREEN (MATCHING USER SCREENSHOT IN ORANGE + WHITE) -->
+        <section id="tab-usdt-deposit" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.4rem; flex:1; text-align:center; margin-right:40px;">Deposit</h2>
+          </div>
+
+          <!-- Step Instructions Box -->
+          <div class="usdt-instruction-box">
+            <ol>
+              <li>Please enter the amount of USDT you would like to use to recharge your integrals.</li>
+              <li>Then click the 'Deposit' button at the bottom.</li>
+              <li>Follow the payment instructions on the order page to complete the payment.</li>
+            </ol>
+          </div>
+
+          <!-- Calculator Box -->
+          <div class="usdt-calc-card">
+            <div class="flex-between" style="border-bottom: 1px solid var(--orange-border); padding-bottom: 8px; margin-bottom: 10px;">
+              <span style="font-weight:700; color:var(--text-medium); font-size:0.9rem;">Calculator</span>
+              <span style="font-weight:700; color:var(--primary-orange); font-size:0.85rem;" id="usdtRatioLabel">Ratio: 1 USDT=110 INR</span>
+            </div>
+
+            <div class="usdt-input-badge-box">
+              <div class="usdt-pill-badge">USDT</div>
+              <input type="number" id="usdtCalcInput" class="usdt-input-field" value="1" min="1" step="1" oninput="FintechApp.calcUsdtReceive()">
+            </div>
+          </div>
+
+          <!-- Outcome Metric Cards (2 Columns) -->
+          <div class="usdt-outcome-grid">
+            <div class="outcome-card">
+              <span>Estimated bonus:</span>
+              <strong id="usdtBonusPreview">0.00 Score</strong>
+            </div>
+            <div class="outcome-card">
+              <span>You will receive:</span>
+              <strong id="usdtReceivePreview">110.00 Score</strong>
+            </div>
+          </div>
+
+          <!-- Select Chain Type Section -->
+          <div style="margin-bottom: 1.25rem;">
+            <h4 style="font-size:0.95rem; font-weight:800; color:var(--text-dark); margin-bottom:10px;">Select Chain Type</h4>
+
+            <!-- TRC20 Option -->
+            <div class="chain-option-card selected" id="chainCardTRC20" onclick="FintechApp.selectChainType('TRC20')">
+              <div class="chain-left">
+                <div class="chain-icon chain-icon-tron">
+                  <i class="fa-solid fa-t"></i>
+                </div>
+                <div class="chain-meta">
+                  <h4>TRC20</h4>
+                  <p>USDT-TRON Network</p>
+                </div>
+              </div>
+              <div class="radio-circle-orange"></div>
+            </div>
+
+            <!-- BSC(BEP20) Option -->
+            <div class="chain-option-card" id="chainCardBSC" onclick="FintechApp.selectChainType('BSC')">
+              <div class="chain-left">
+                <div class="chain-icon chain-icon-bsc">
+                  <i class="fa-solid fa-cubes"></i>
+                </div>
+                <div class="chain-meta">
+                  <h4>BSC(BEP20)</h4>
+                  <p>USDT-BNB Smart Chain</p>
+                </div>
+              </div>
+              <div class="radio-circle-orange"></div>
+            </div>
+          </div>
+
+          <!-- Notice Warning Bar -->
+          <div class="usdt-notice-bar">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:1.1rem; margin-top:2px;"></i>
+            <span>After the recharge is completed, please wait 3-5 minutes for the deposit to arrive.</span>
+          </div>
+
+          <!-- Large Orange Deposit Button -->
+          <button type="button" class="btn-orange-deposit-large" onclick="FintechApp.handleUsdtDepositSubmit()">Deposit</button>
+        </section>
+
+        <!-- DEDICATED USDT ORDER PAYMENT DETAILS SCREEN (MATCHING USER SCREENSHOT 2 IN ORANGE + WHITE) -->
+        <section id="tab-usdt-order-detail" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('usdt-deposit')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.4rem; flex:1; text-align:center; margin-right:40px;">Order</h2>
+          </div>
+
+          <!-- Order Details Card -->
+          <div class="usdt-order-detail-card">
+            <!-- Top Banner -->
+            <div class="usdt-order-top-banner">
+              <h2 id="ordUsdtAmountDisplay">USDT 1.00</h2>
+            </div>
+
+            <div class="order-detail-body">
+              <!-- 1. Address -->
+              <div class="order-field-row">
+                <div class="order-field-header">
+                  <span>Address:</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyOrderField('ordAddressVal', 'Address')" title="Copy Address"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div class="order-field-val" id="ordAddressVal">0xb2767c43476e6fbefc1bb530b126d0c726d8842b</div>
+              </div>
+
+              <!-- 2. Type -->
+              <div class="order-field-row">
+                <div class="order-field-header">
+                  <span>Type:</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyOrderField('ordTypeValText', 'Type')" title="Copy Type"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="badge-chain-yellow"><i class="fa-solid fa-cubes"></i> <span id="ordTypeValText">BSC-USDT</span></span>
+                </div>
+              </div>
+
+              <!-- 3. Status -->
+              <div class="order-field-row">
+                <div class="order-field-header">
+                  <span>Status:</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyOrderField('ordStatusVal', 'Status')" title="Copy Status"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div class="order-field-val" id="ordStatusVal" style="color:var(--text-dark); font-size:1rem;">Pending</div>
+              </div>
+
+              <!-- 4. CreatedAt -->
+              <div class="order-field-row">
+                <div class="order-field-header">
+                  <span>CreatedAt:</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyOrderField('ordCreatedAtVal', 'CreatedAt')" title="Copy CreatedAt"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div class="order-field-val" id="ordCreatedAtVal">2026-07-26 18:00:54</div>
+              </div>
+
+              <!-- 5. NO (Order Serial Number) -->
+              <div class="order-field-row" style="border-bottom:none;">
+                <div class="order-field-header">
+                  <span>NO:</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyOrderField('ordSerialNoVal', 'Order Serial Number')" title="Copy Order Serial NO"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div class="order-field-val" id="ordSerialNoVal">U2026072618005446260686</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DEDICATED TASK REWARDS SCREEN (MATCHING USER SCREENSHOT IN ORANGE + WHITE) -->
+        <section id="tab-task-rewards" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.4rem; flex:1; text-align:center; margin-right:40px;">Task Rewards</h2>
+          </div>
+
+          <p style="font-size:0.85rem; color:var(--text-medium); text-align:center; margin-bottom:1.25rem;">Earn tokens by completing tasks</p>
+
+          <!-- 3 Filter Tabs (Newbie Tasks, Team Growth, Daily Tasks) -->
+          <div class="task-tab-pills">
+            <button class="task-pill-item active" id="taskTabNewbie" onclick="FintechApp.filterTaskCategory('NEWBIE')">Newbie Tasks</button>
+            <button class="task-pill-item" id="taskTabTeam" onclick="FintechApp.filterTaskCategory('TEAM')">Team Growth</button>
+            <button class="task-pill-item" id="taskTabDaily" onclick="FintechApp.filterTaskCategory('DAILY')">Daily Tasks</button>
+          </div>
+
+          <!-- Task Cards Container -->
+          <div id="taskRewardsListContainer"></div>
+        </section>
+
+        <!-- DEDICATED TEAM MANAGEMENT SCREEN (MATCHING USER SCREENSHOTS 1 & 2 IN ORANGE + WHITE) -->
+        <section id="tab-team-statistics" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.4rem; flex:1; text-align:center; margin-right:40px;">Team</h2>
+          </div>
+
+          <!-- 1. Main Total Commissions Banner & 4 Quads -->
+          <div class="team-main-banner-orange">
+            <span class="team-banner-subtitle">My Total Commissions:</span>
+            <div class="team-banner-amount">+<span id="teamTotalCommDisplay">0.00</span></div>
+
+            <div class="team-quads-grid">
+              <div class="team-quad-card">
+                <span>Commissions Yesterday</span>
+                <strong>+<span id="teamCommYest">0.00</span></strong>
+              </div>
+              <div class="team-quad-card">
+                <span>Total Team Members</span>
+                <strong>+<span id="teamMembersTotal">4</span></strong>
+              </div>
+              <div class="team-quad-card">
+                <span>Commissions Today</span>
+                <strong>+<span id="teamCommToday">0.00</span></strong>
+              </div>
+              <div class="team-quad-card">
+                <span>Total Team Deposit</span>
+                <strong>+<span id="teamDepTotal">3,000.00</span></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Invitation Link Card -->
+          <div class="invitation-card-orange">
+            <div class="invitation-header-banner">
+              <div class="invitation-header-row">
+                <h3>Invitation</h3>
+                <div class="invite-code-box">
+                  <span>Link</span>
+                  <span style="color:#fff; background:rgba(0,0,0,0.2); padding:2px 8px; border-radius:8px;" id="teamInviteCode">310422</span>
+                  <button type="button" class="copy-btn-icon" onclick="FintechApp.copyInviteLink()" title="Copy Link" style="color:#fff;"><i class="fa-regular fa-copy"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="invite-level-grid">
+              <div class="invite-level-box">
+                <h4>Level.B</h4>
+                <div class="invite-level-row"><span>Today:</span> <strong>0</strong></div>
+                <div class="invite-level-row"><span>Yesterday:</span> <strong>0</strong></div>
+              </div>
+              <div class="invite-level-box">
+                <h4>Level.C</h4>
+                <div class="invite-level-row"><span>Today:</span> <strong>0</strong></div>
+                <div class="invite-level-row"><span>Yesterday:</span> <strong>0</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Share APP to Section -->
+          <div class="share-app-card">
+            <h3>Share APP to</h3>
+            <div class="share-app-grid">
+              <div class="share-app-item" onclick="FintechApp.shareAppTo('telegram')">
+                <div class="share-icon-circle icon-telegram"><i class="fa-brands fa-telegram"></i></div>
+                <span>Telegram</span>
+              </div>
+              <div class="share-app-item" onclick="FintechApp.shareAppTo('facebook')">
+                <div class="share-icon-circle icon-facebook"><i class="fa-brands fa-facebook-f"></i></div>
+                <span>Facebook</span>
+              </div>
+              <div class="share-app-item" onclick="FintechApp.shareAppTo('whatsapp')">
+                <div class="share-icon-circle icon-whatsapp"><i class="fa-brands fa-whatsapp"></i></div>
+                <span>Whatsapp</span>
+              </div>
+              <div class="share-app-item" onclick="FintechApp.copyInviteLink()">
+                <div class="share-icon-circle icon-copylink"><i class="fa-solid fa-link"></i></div>
+                <span>Copy link</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Commissions / Deposit Breakdown Card -->
+          <div class="comm-deposit-card">
+            <div style="background:linear-gradient(135deg, #ff6600, #ff7700); color:#fff; padding:10px 16px; font-weight:800; font-size:1rem;">
+              Commissions / Deposit
+            </div>
+            <div style="padding:1.25rem;">
+              <div class="detail-row">
+                <strong style="color:var(--primary-orange); font-size:1rem;">Level.B</strong>
+                <span style="font-weight:700;">0.00/0.00</span>
+              </div>
+              <div class="detail-row">
+                <strong style="color:var(--primary-orange); font-size:1rem;">Level.C</strong>
+                <span style="font-weight:700;">0.00/0.00</span>
+              </div>
+              <div style="margin-top:10px;">
+                <a href="#" onclick="FintechApp.showToast('Full team commission breakdown active', 'info'); return false;" style="color:var(--primary-orange); font-weight:800; font-size:0.88rem; text-decoration:none;">View details &gt;</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Performance Chart Card -->
+          <div class="perf-chart-card">
+            <div class="perf-header-flex">
+              <h3>Performance</h3>
+              <div class="perf-chips">
+                <button class="perf-chip-btn" id="perfChipDay" onclick="FintechApp.filterTeamPerf('Day')">Day</button>
+                <button class="perf-chip-btn" id="perfChipWeek" onclick="FintechApp.filterTeamPerf('Week')">Week</button>
+                <button class="perf-chip-btn active" id="perfChipMonth" onclick="FintechApp.filterTeamPerf('Month')">Month</button>
+              </div>
+            </div>
+
+            <div class="perf-graphic-bars" id="perfGraphicBars">
+              <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 20%;"></div><span class="perf-bar-label">W1</span></div>
+              <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 45%;"></div><span class="perf-bar-label">W2</span></div>
+              <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 80%;"></div><span class="perf-bar-label">W3</span></div>
+              <div class="perf-bar-col"><div class="perf-bar-fill" style="height: 60%;"></div><span class="perf-bar-label">W4</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DEDICATED SELL ORDERS SCREEN (WITHDRAWAL CLICK - STATUS FILTERS) -->
+        <section id="tab-sell-orders" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.3rem;">Sell Orders (Withdrawal)</h2>
+          </div>
+
+          <!-- Top Withdrawal Request Form Card -->
+          <div class="card">
+            <div class="card-header-flex" style="border-bottom:1px solid var(--orange-border); padding-bottom:8px; margin-bottom:12px;">
+              <h3><i class="fa-solid fa-arrow-down text-orange"></i> Create Sell Order (Withdrawal)</h3>
+            </div>
+            <form id="formSellOrderCreate" onsubmit="FintechApp.handleCreateSellOrder(event)">
+              <div class="form-group">
+                <label>Withdrawal Amount (₹)</label>
+                <input type="number" id="sellAmountInput" class="form-control" placeholder="e.g. 500" required>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Payout Bank</label>
+                  <input type="text" id="sellBankInput" class="form-control" placeholder="e.g. SBI Bank" value="State Bank of India" required>
+                </div>
+                <div class="form-group">
+                  <label>Account Number</label>
+                  <input type="text" id="sellAccInput" class="form-control" placeholder="e.g. ****3892" value="****3892" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-orange-pill-lg width-100" style="margin-top: 8px;">Submit Sell Order</button>
+            </form>
+          </div>
+
+          <!-- Status Filter Chips Bar (ALL, Pending, Submitted, Success, Timeout) -->
+          <div class="dual-filter-bar">
+            <span class="filter-label-sm"><i class="fa-solid fa-filter text-orange"></i> Sell Order Status Filter</span>
+            <div class="payment-filter-chips" style="margin-bottom:0;">
+              <button class="chip active" id="chipSellStatusAll" onclick="FintechApp.filterSellStatus('ALL')">ALL</button>
+              <button class="chip" id="chipSellStatusPending" onclick="FintechApp.filterSellStatus('PENDING')">Pending</button>
+              <button class="chip" id="chipSellStatusSubmitted" onclick="FintechApp.filterSellStatus('SUBMITTED')">Submitted</button>
+              <button class="chip" id="chipSellStatusSuccess" onclick="FintechApp.filterSellStatus('SUCCESS')">Success</button>
+              <button class="chip" id="chipSellStatusTimeout" onclick="FintechApp.filterSellStatus('TIMEOUT')">Timeout</button>
+            </div>
+          </div>
+
+          <!-- Sell Orders List Container -->
+          <div id="sellOrdersListContainer"></div>
+        </section>
+
+        <!-- DEDICATED DEPOSIT & BUY ORDERS SCREEN -->
+        <section id="tab-deposit-orders" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.3rem;">Deposit & Buy Orders</h2>
+          </div>
+
+          <!-- Top Deposit Request Card -->
+          <div class="card">
+            <div class="card-header-flex" style="border-bottom:1px solid var(--orange-border); padding-bottom:8px; margin-bottom:12px;">
+              <h3><i class="fa-solid fa-plus-circle text-orange"></i> Create New Deposit Order</h3>
+            </div>
+            <form id="formDepositBuyOrder" onsubmit="FintechApp.handleCreateDepositOrder(event)">
+              <div class="form-group">
+                <label>Deposit Amount (₹)</label>
+                <input type="number" id="depAmountInput" class="form-control" placeholder="e.g. 1100" required>
+              </div>
+              <div class="form-group">
+                <label>Payment Channel</label>
+                <select id="depChannelSelect" class="form-control">
+                  <option value="Paytm Wallet">Paytm Wallet</option>
+                  <option value="Freecharge Wallet">Freecharge Wallet</option>
+                  <option value="Mobikwik Wallet">Mobikwik Wallet</option>
+                  <option value="UPI Direct">UPI Direct (GPay/PhonePe)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-orange-pill-lg width-100" style="margin-top: 8px;">Submit Deposit Buy Order</button>
+            </form>
+          </div>
+
+          <!-- Dual Filters (Date Range & Status) -->
+          <div class="dual-filter-bar">
+            <div>
+              <span class="filter-label-sm"><i class="fa-regular fa-calendar-days text-orange"></i> Date Filter (Range)</span>
+              <div class="payment-filter-chips" style="margin-bottom:0;">
+                <button class="chip active" id="chipDateAll" onclick="FintechApp.filterDepDate('ALL')">ALL</button>
+                <button class="chip" id="chipDate7" onclick="FintechApp.filterDepDate('7D')">7 Days</button>
+                <button class="chip" id="chipDate30" onclick="FintechApp.filterDepDate('30D')">30 Days</button>
+                <button class="chip" id="chipDate90" onclick="FintechApp.filterDepDate('90D')">90 Days</button>
+              </div>
+            </div>
+
+            <div style="margin-top: 6px;">
+              <span class="filter-label-sm"><i class="fa-solid fa-filter text-orange"></i> Status Filter</span>
+              <div class="payment-filter-chips" style="margin-bottom:0;">
+                <button class="chip active" id="chipStatusAll" onclick="FintechApp.filterDepStatus('ALL')">All Status</button>
+                <button class="chip" id="chipStatusProcessing" onclick="FintechApp.filterDepStatus('PROCESSING')">Processing</button>
+                <button class="chip" id="chipStatusSubmit" onclick="FintechApp.filterDepStatus('SUBMIT')">Submit</button>
+                <button class="chip" id="chipStatusSuccess" onclick="FintechApp.filterDepStatus('SUCCESS')">Success</button>
+                <button class="chip" id="chipStatusClose" onclick="FintechApp.filterDepStatus('CLOSE')">Close</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="depositBuyOrdersContainer"></div>
+        </section>
+
+        <!-- DEDICATED SCORE BREAKDOWN & ROLL OUT SCREEN -->
+        <section id="tab-score-detail" class="app-tab-view">
+          <div class="flex-between margin-bottom-1rem">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')"><i class="fa-solid fa-arrow-left"></i> Back to Home</button>
+            <h2 class="text-orange" style="font-family:var(--font-heading); font-size:1.3rem;">Score & Roll Out</h2>
+          </div>
+
+          <div class="score-banner-card">
+            <span style="font-size:0.9rem; opacity:0.9;">You Have Score</span>
+            <div class="score-value-big"><span id="userScoreDisplay">1,250</span> <small style="font-size:1.2rem;">PTS</small></div>
+            <p style="font-size:0.78rem; opacity:0.85; margin-top:6px;">Earned from daily claims & tasks</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header-flex" style="border-bottom:1px solid var(--orange-border); padding-bottom:8px; margin-bottom:12px;">
+              <h3><i class="fa-solid fa-arrows-rotate text-orange"></i> Change into Roll Out</h3>
+              <span class="special-tag" id="scoreRateBadge">100 Score = ₹ 10 INR</span>
+            </div>
+
+            <form id="formScoreConvert" onsubmit="FintechApp.handleScoreConvert(event)">
+              <div class="form-group">
+                <label>Enter Score Points to Roll Out</label>
+                <input type="number" id="convertScoreInput" class="form-control" placeholder="e.g. 500" min="100" step="100" required oninput="FintechApp.calcScoreInrPreview()">
+              </div>
+
+              <div class="warning-alert-box" style="margin: 10px 0;">
+                <i class="fa-solid fa-coins text-yellow"></i>
+                <span>Wallet Balance Increase: <strong class="text-orange">₹ <span id="previewRollOutInr">0.00</span></strong></span>
+              </div>
+
+              <button type="submit" class="btn-orange-pill-lg width-100" style="margin-top: 10px;">Roll Out to Wallet Balance</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="detail-row"><span>Available Balance:</span> <strong class="text-orange">₹ <span id="scoreBalVal">0.00</span></strong></div>
+            <div class="detail-row"><span>Total Deposit:</span> <strong>₹ <span id="scoreDepVal">0.00</span></strong></div>
+            <div class="detail-row"><span>Total Withdrawal:</span> <strong>₹ <span id="scoreWithVal">0.00</span></strong></div>
+            <div class="detail-row"><span>Total Commission:</span> <strong class="text-orange">₹ <span id="scoreCommVal">0.00</span></strong></div>
+          </div>
+        </section>
+
+        <!-- TAB 2: PAYMENT -->
+        <section id="tab-payment" class="app-tab-view">
+          <h1 class="screen-title text-center text-orange">Payment</h1>
+
+          <div class="payment-banner-orange">
+            <div class="banner-top">
+              <div class="banner-title-box">
+                <span>Cashback</span>
+                <h2>4%</h2>
+              </div>
+              <div class="banner-chart-graphic">
+                <div class="graphic-bar" style="height: 40%;"></div>
+                <div class="graphic-bar" style="height: 70%;"></div>
+                <div class="graphic-bar" style="height: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="banner-metrics-grid">
+              <div class="banner-metric">
+                <span>Balance</span>
+                <strong>∫ <span id="paymentBalance">0</span></strong>
+              </div>
+              <div class="banner-metric-stack">
+                <div class="banner-submetric">
+                  <span>Reward</span>
+                  <strong>∫ <span id="paymentReward">0</span></strong>
+                </div>
+                <div class="banner-submetric">
+                  <span>Pending</span>
+                  <strong>∫ <span id="paymentPending">0</span></strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="special-reward-banner">
+            <i class="fa-solid fa-wand-magic-sparkles text-yellow"></i>
+            <span>Special Reward is ON now (00:00 - 23:59)</span>
+          </div>
+
+          <div class="warning-alert-box">
+            <i class="fa-solid fa-triangle-exclamation text-orange"></i>
+            <span>Please use Freecharge or Mobikwik or Paytm wallet for payment!</span>
+          </div>
+
+          <div class="payment-filter-chips">
+            <button class="chip active" data-filter="ALL">Top Picks</button>
+            <button class="chip" data-filter="100-300">100-300</button>
+            <button class="chip" data-filter="301-500">301-500</button>
+            <button class="chip" data-filter="501-1000">501-1000</button>
+          </div>
+
+          <div class="payment-offers-list" id="paymentOffersList"></div>
+        </section>
+
+        <!-- TAB 3: TOOL / WALLET -->
+        <section id="tab-tool" class="app-tab-view">
+          <!-- MAIN TOOL VIEW -->
+          <div id="toolMainView">
+            <h1 class="screen-title text-center text-orange" style="margin-bottom: 20px;">Tool</h1>
+
+            <div class="tool-center-container">
+              <!-- Empty State -->
+              <div class="empty-tool-state" id="toolEmptyState">
+                <p class="tool-subtitle">No wallets yet</p>
+                <button class="btn-add-tool-pill" id="btnOpenAddToolView">Add</button>
+              </div>
+
+              <!-- Saved Wallets Container -->
+              <div class="wallets-list-container" id="walletsList" style="display: none; width: 100%;">
+                <div class="flex-between margin-bottom-1" style="align-items: center;">
+                  <h3 class="text-orange" style="font-size: 1.1rem; font-weight: 700;">My Payment Tools</h3>
+                  <button class="btn-orange-pill" id="btnAddNewToolHeader" style="padding: 6px 16px; font-size: 0.85rem;">+ Add Tool</button>
+                </div>
+                <div id="savedWalletsListContent"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADD TOOL VIEW (SUB-SCREEN MATCHING SCREENSHOT) -->
+          <div id="addToolSubView" style="display: none;" class="add-tool-view-container">
+            <div class="add-tool-nav-bar">
+              <button class="btn-back-nav" id="btnBackToToolMain" title="Back to Tool">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <h2 class="add-tool-nav-title">Add Tool</h2>
+            </div>
+
+            <h3 class="choose-payment-heading">Choose your payment</h3>
+
+            <!-- Segment Toggle (Personal / Business) -->
+            <div class="payment-segment-wrapper">
+              <button class="segment-pill-btn active" id="btnToolTabPersonal" data-segment="Personal">Personal</button>
+              <button class="segment-pill-btn" id="btnToolTabBusiness" data-segment="Business">Business</button>
+            </div>
+
+            <!-- Payment Options List -->
+            <div class="payment-options-list" id="paymentToolsOptionsContainer">
+              <!-- Dynamic options rendered via JavaScript -->
+            </div>
+
+            <!-- Sure Action Button -->
+            <button class="btn-sure-submit" id="btnConfirmToolSelection">Sure</button>
+          </div>
+        </section>
+
+        <!-- TAB 4: STATISTICS -->
+        <section id="tab-statistics" class="app-tab-view">
+          <h1 class="screen-title text-center text-orange">Statistics</h1>
+
+          <div class="card stats-main-card">
+            <div class="stats-card-header">
+              <span class="orange-indicator"></span>
+              <h3>Statistics <small class="text-muted">(<span id="statsCurrentDate">26/07/2026</span>)</small></h3>
+            </div>
+
+            <div class="stats-grid-2x2">
+              <div class="stat-quad">
+                <div class="quad-icon blue-icon"><i class="fa-solid fa-wallet"></i></div>
+                <div class="quad-data">
+                  <span class="quad-label">Balance</span>
+                  <strong class="quad-value">₹ <span id="statBalance">0.00</span></strong>
+                </div>
+              </div>
+
+              <div class="stat-quad">
+                <div class="quad-icon yellow-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                <div class="quad-data">
+                  <span class="quad-label">Sell</span>
+                  <strong class="quad-value">₹ <span id="statSell">0.00</span></strong>
+                </div>
+              </div>
+
+              <div class="stat-quad">
+                <div class="quad-icon orange-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="quad-data">
+                  <span class="quad-label">Deposit</span>
+                  <strong class="quad-value">₹ <span id="statDeposit">0.00</span></strong>
+                </div>
+              </div>
+
+              <div class="stat-quad">
+                <div class="quad-icon red-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
+                <div class="quad-data">
+                  <span class="quad-label">Commission</span>
+                  <strong class="quad-value">₹ <span id="statCommission">0.00</span></strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card payment-rates-card">
+            <div class="stats-card-header">
+              <span class="orange-indicator"></span>
+              <h3>Payment</h3>
+            </div>
+
+            <div class="exchange-rate-banner">
+              <div class="rate-info">
+                <span>Real Time Exchange Rates(INR/USDT)</span>
+              </div>
+              <div class="rate-badge" id="statExchangeRate">110</div>
+            </div>
+
+            <div class="stats-grid-2x2 margin-top-1">
+              <div class="stat-quad-flat">
+                <i class="fa-solid fa-coins text-orange"></i>
+                <div>
+                  <span class="quad-label">In Process Amount</span>
+                  <strong class="quad-value">₹ <span id="statInProcessAmt">0.00</span></strong>
+                </div>
+              </div>
+
+              <div class="stat-quad-flat">
+                <i class="fa-solid fa-file-invoice text-orange"></i>
+                <div>
+                  <span class="quad-label">In Process Orders</span>
+                  <strong class="quad-value" id="statInProcessOrders">0</strong>
+                </div>
+              </div>
+
+              <div class="stat-quad-flat">
+                <i class="fa-solid fa-percent text-orange"></i>
+                <div>
+                  <span class="quad-label">Commission Rate</span>
+                  <strong class="quad-value"><span id="statCommissionRate">4.00</span> %</strong>
+                </div>
+              </div>
+
+              <div class="stat-quad-flat">
+                <i class="fa-solid fa-chart-line text-orange"></i>
+                <div>
+                  <span class="quad-label">Estimated Income</span>
+                  <strong class="quad-value">₹ <span id="statEstIncome">0.00</span></strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="selling-button-wrap">
+            <button class="btn-yellow-pill-lg" id="btnToggleSelling">Closed Selling</button>
+          </div>
+        </section>
+
+        <!-- TAB 5: MY ASSET -->
+        <section id="tab-my" class="app-tab-view">
+          <h1 class="screen-title text-center text-orange">My Asset</h1>
+
+          <div class="asset-cards-grid">
+            <div class="asset-card" style="cursor:pointer;" onclick="FintechApp.openDepositOrdersView()">
+              <div class="asset-icon-box orange-icon-box">
+                <i class="fa-solid fa-credit-card"></i>
+              </div>
+              <div class="asset-data">
+                <span class="asset-label">Deposit</span>
+                <h4 class="asset-value">₹ <span id="assetDeposit">0</span></h4>
+              </div>
+            </div>
+
+            <div class="asset-card" style="cursor:pointer;" onclick="FintechApp.openSellOrdersView()">
+              <div class="asset-icon-box blue-icon-box">
+                <i class="fa-solid fa-money-bill-transfer"></i>
+              </div>
+              <div class="asset-data">
+                <span class="asset-label">Withdraw</span>
+                <h4 class="asset-value">₹ <span id="assetWithdraw">0</span></h4>
+              </div>
+            </div>
+
+            <div class="asset-card col-span-2">
+              <div class="asset-icon-box yellow-icon-box">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </div>
+              <div class="asset-data">
+                <span class="asset-label">Commission</span>
+                <h4 class="asset-value">₹ <span id="assetCommission">0</span></h4>
+              </div>
+            </div>
+          </div>
+
+          <div class="asset-actions-card">
+            <div class="asset-actions-grid">
+              <div class="asset-action-item" id="btnAssetWallet" style="cursor: pointer;" onclick="FintechApp.switchAppTab('tool')">
+                <div class="asset-action-box"><i class="fa-solid fa-yen-sign"></i></div>
+                <span>Wallet</span>
+              </div>
+
+              <div class="asset-action-item" id="btnAssetIntegral" style="cursor: pointer;" onclick="FintechApp.openScoreDetailView()">
+                <div class="asset-action-box"><i class="fa-solid fa-coins"></i></div>
+                <span>Score Points</span>
+              </div>
+
+              <div class="asset-action-item" id="btnAssetService" style="cursor: pointer;">
+                <div class="asset-action-box"><i class="fa-solid fa-headset"></i></div>
+                <span>Service</span>
+              </div>
+
+              <div class="asset-action-item" id="btnAssetMessage" style="cursor: pointer;">
+                <div class="asset-action-box"><i class="fa-solid fa-comment-dots"></i></div>
+                <span>Message</span>
+              </div>
+
+              <div class="asset-action-item" id="btnAssetPin" style="cursor: pointer;">
+                <div class="asset-action-box"><i class="fa-solid fa-shield-halved"></i></div>
+                <span>Pin</span>
+              </div>
+            </div>
+
+            <div class="app-version-label" id="appVersionDisplay">v1.1.9</div>
+          </div>
+
+          <div class="logout-btn-wrap">
+            <button class="btn-orange-pill-lg" id="btnLogout">Logout Account</button>
+          </div>
+        </section>
+
+        <!-- TAB 6: PIN CODE SETTINGS (MATCHING USER SCREENSHOT) -->
+        <section id="tab-pincode" class="app-tab-view">
+          <div class="pin-code-view-container">
+            <div class="pin-nav-bar">
+              <button class="btn-back-nav" id="btnBackFromPin" title="Back">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <h2 class="add-tool-nav-title">Pin Code</h2>
+            </div>
+
+            <!-- Gear Settings Icon -->
+            <div class="pin-gear-icon-box">
+              <i class="fa-solid fa-gear"></i>
+            </div>
+
+            <h3 class="pin-title-heading">Enter Your Pin</h3>
+
+            <!-- Form Groups -->
+            <div class="pin-input-group">
+              <label class="pin-group-label">Old Pin (If You Set)</label>
+              <div class="pin-digits-row" id="rowOldPin">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="0" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="1" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="2" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="3" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="4" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="old" data-idx="5" pattern="[0-9]*" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="pin-input-group">
+              <label class="pin-group-label">New Pin</label>
+              <div class="pin-digits-row" id="rowNewPin">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="0" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="1" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="2" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="3" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="4" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="new" data-idx="5" pattern="[0-9]*" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="pin-input-group">
+              <label class="pin-group-label">Confirm New Pin</label>
+              <div class="pin-digits-row" id="rowConfirmPin">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="0" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="1" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="2" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="3" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="4" pattern="[0-9]*" inputmode="numeric">
+                <input type="password" maxlength="1" class="pin-box" data-group="confirm" data-idx="5" pattern="[0-9]*" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="pin-actions-row">
+              <button class="btn-pin-cancel" id="btnCancelPin">Cancel</button>
+              <button class="btn-pin-confirm" id="btnConfirmPin">Confirm</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Floating Support Bot Widget -->
+      <div class="floating-bot-widget" id="floatingBotWidget" title="Customer Support">
+        <div class="bot-icon-circle">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+      </div>
+
+      <!-- Bottom Nav Bar -->
+      <nav class="bottom-nav-bar">
+        <button class="nav-tab-item active" data-tab="home">
+          <i class="fa-solid fa-house"></i>
+          <span>Home</span>
+        </button>
+        <button class="nav-tab-item" data-tab="payment">
+          <i class="fa-solid fa-credit-card"></i>
+          <span>Payment</span>
+        </button>
+        <button class="nav-tab-item nav-center-yellow" data-tab="tool">
+          <div class="yellow-circle-btn">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+        </button>
+        <button class="nav-tab-item" data-tab="statistics">
+          <i class="fa-solid fa-users"></i>
+          <span>Statistics</span>
+        </button>
+        <button class="nav-tab-item" data-tab="my">
+          <i class="fa-solid fa-circle-user"></i>
+          <span>My</span>
+        </button>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- NOTIFICATIONS CENTER DRAWER MODAL -->
+  <div class="modal-backdrop" id="modalNotifications">
+    <div class="modal">
+      <div class="modal-header flex-between">
+        <h3><i class="fa-regular fa-bell text-orange"></i> Notifications Center</h3>
+        <button class="modal-close" data-close="modalNotifications">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="payment-filter-chips margin-bottom-1rem">
+          <button class="chip active" id="chipNotifAll" onclick="FintechApp.filterNotifs('ALL')">All Messages</button>
+          <button class="chip" id="chipNotifUnread" onclick="FintechApp.filterNotifs('UNREAD')">Unread Messages</button>
+        </div>
+
+        <div id="notificationsContainer"></div>
+      </div>
+      <div class="modal-footer flex-between">
+        <button class="btn btn-secondary" onclick="FintechApp.markAllNotifsRead()"><i class="fa-solid fa-check-double text-orange"></i> Mark All as Read</button>
+        <button class="btn btn-orange" data-close="modalNotifications">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTHER USER MODALS -->
+  <div class="modal-backdrop" id="modalBalanceDetail">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wallet text-orange"></i> Balance Breakdown</h3>
+        <button class="modal-close" data-close="modalBalanceDetail">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row"><span>Available Balance:</span> <strong class="text-orange">₹ <span id="mdlBal">0.00</span></strong></div>
+        <div class="detail-row"><span>Total Deposit:</span> <strong>₹ <span id="mdlDep">0.00</span></strong></div>
+        <div class="detail-row"><span>Total Withdrawal:</span> <strong>₹ <span id="mdlWith">0.00</span></strong></div>
+        <div class="detail-row"><span>Total Commission Earned:</span> <strong class="text-orange">₹ <span id="mdlComm">0.00</span></strong></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-orange" data-close="modalBalanceDetail">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalTaskCenter">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-list-ul text-orange"></i> Task Center</h3>
+        <button class="modal-close" data-close="modalTaskCenter">&times;</button>
+      </div>
+      <div class="modal-body" id="taskCenterContainer"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modalTaskCenter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalTeamCenter">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-orange"></i> Team Statistics</h3>
+        <button class="modal-close" data-close="modalTeamCenter">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row"><span>Total Team Members:</span> <strong>4 Members</strong></div>
+        <div class="detail-row"><span>Level 1 Direct Invites:</span> <strong>3 Members</strong></div>
+        <div class="detail-row"><span>Level 2 Sub-Invites:</span> <strong>1 Member</strong></div>
+        <div class="detail-row"><span>Team Commission Bonus:</span> <strong class="text-orange">₹ 120.00</strong></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-orange" data-close="modalTeamCenter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalOrderCenter">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clipboard-list text-orange"></i> My Orders</h3>
+        <button class="modal-close" data-close="modalOrderCenter">&times;</button>
+      </div>
+      <div class="modal-body" id="ordersHistoryContainer">
+        <p class="text-muted text-center" style="padding: 1rem;">All completed claim orders will show here.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modalOrderCenter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalToolDetailsInput">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wallet text-orange"></i> Add <span id="modalSelectedToolTitle">Payment Tool</span></h3>
+        <button class="modal-close" data-close="modalToolDetailsInput">&times;</button>
+      </div>
+      <form id="formSubmitToolDetails">
+        <div class="modal-body">
+          <input type="hidden" id="toolSelectedNameInput" value="Freecharge">
+          <input type="hidden" id="toolSelectedTypeInput" value="Personal">
+          
+          <div class="form-group">
+            <label id="lblToolAddressInput">Mobile / UPI / Account Number</label>
+            <input type="text" id="toolAccountAddressInput" class="form-control" placeholder="e.g. 9876543210 or user@upi" required>
+          </div>
+
+          <div class="form-group">
+            <label>Account Holder Name</label>
+            <input type="text" id="toolHolderNameInput" class="form-control" placeholder="Enter Full Name" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalToolDetailsInput">Cancel</button>
+          <button type="submit" class="btn btn-orange">Confirm & Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DEPOSIT PAYMENT GATEWAY & UTR SUBMISSION -->
+  <div class="modal-backdrop" id="modalDepositPayment">
+    <div class="modal" style="max-width: 440px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; padding: 14px 20px;">
+        <h3 style="color: #ffffff; margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-qrcode"></i> Complete Deposit Payment</h3>
+        <button class="modal-close" data-close="modalDepositPayment" style="color: #ffffff;">&times;</button>
+      </div>
+      <form id="formConfirmDepositPayment">
+        <div class="modal-body" style="padding: 1.25rem;">
+          
+          <!-- Summary Box -->
+          <div style="background: var(--orange-light); border: 1.5px dashed var(--primary-orange); border-radius: 12px; padding: 12px 16px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Deposit Amount</span>
+              <strong style="font-size: 1.2rem; color: var(--primary-orange);" id="paySummaryInr">₹ 1,000.00</strong>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">USDT Credit</span>
+              <strong style="font-size: 1.1rem; color: var(--text-dark);" id="paySummaryUsdt">9.09 USDT</strong>
+            </div>
+          </div>
+
+          <!-- Dynamic Amount QR Code Box -->
+          <div style="text-align: center; margin-bottom: 1rem; background: #fffaf6; border: 1.5px solid var(--orange-border); border-radius: 18px; padding: 14px;">
+            <span style="font-size: 0.85rem; font-weight: 800; color: var(--primary-orange); display: block; margin-bottom: 8px;">
+              <i class="fa-solid fa-qrcode"></i> Dynamic Amount Payment QR Code
+            </span>
+            <div style="background: #ffffff; padding: 12px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 15px rgba(255,102,0,0.12); border: 2px solid var(--primary-orange);">
+              <div id="qrcodeCanvasBox" style="display: flex; justify-content: center; align-items: center;"></div>
+              <img id="displayDynamicQrCode" src="" alt="Dynamic Amount UPI QR Code" style="width: 190px; height: 190px; display: block; margin: 0 auto; border-radius: 8px;">
+            </div>
+            <span style="font-size: 0.76rem; color: var(--text-dark); display: block; margin-top: 8px; font-weight: 800;">
+              Exact Amount Pre-filled: <span style="color: var(--primary-orange);" id="qrAmountBadge">₹ 1,000.00</span>
+            </span>
+            <span style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-top: 2px;">
+              Scan with GPay, PhonePe, or Paytm app
+            </span>
+          </div>
+
+          <!-- Direct Deep-Link Pay Button -->
+          <a id="btnDirectUpiPayLink" href="#" class="btn-orange-pill-lg width-100 text-center" style="display: block; text-decoration: none; margin-bottom: 1rem; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; font-weight: 800; padding: 12px; font-size: 0.95rem; border-radius: 30px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+            <i class="fa-solid fa-bolt"></i> Pay <span id="payBtnAmountText">₹ 1,000</span> Directly via UPI App
+          </a>
+
+          <!-- Merchant UPI Box -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-building-columns text-orange"></i> Merchant UPI ID</span>
+              <span class="status-badge-pill badge-success-green" style="font-size: 0.7rem;">Verified</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid var(--orange-border); padding: 8px 12px; border-radius: 10px; margin-bottom: 10px;">
+              <code style="font-size: 0.95rem; font-weight: 800; color: var(--primary-orange);" id="displayAdminUpiId">8104229900@upi</code>
+              <button type="button" class="btn-orange-pill" onclick="FintechApp.copyAdminUpiId()" style="padding: 4px 10px; font-size: 0.75rem;">
+                <i class="fa-regular fa-copy"></i> Copy UPI
+              </button>
+            </div>
+
+            <p style="font-size: 0.75rem; color: var(--text-medium); margin: 0; line-height: 1.4;">
+              <i class="fa-solid fa-circle-info text-orange"></i> Open GPay, PhonePe, or Paytm -> Select Pay to UPI ID -> Pay exact amount -> Enter 12-digit UTR below.
+            </p>
+          </div>
+
+          <!-- Form Fields -->
+          <div class="form-group">
+            <label style="font-weight: 700; font-size: 0.82rem;">12-Digit UTR / Transaction Ref No.</label>
+            <input type="text" id="payUtrInput" class="form-control" placeholder="e.g. 423901827461" maxlength="16" required style="letter-spacing: 1px; font-weight: 700;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.82rem;">Payment Method Used</label>
+            <select id="payMethodUsedSelect" class="form-control">
+              <option value="Paytm Wallet / UPI">Paytm (Wallet / UPI)</option>
+              <option value="PhonePe UPI">PhonePe UPI</option>
+              <option value="GooglePay Direct">GooglePay (GPay)</option>
+              <option value="Freecharge Wallet">Freecharge Wallet</option>
+              <option value="Mobikwik Wallet">Mobikwik Wallet</option>
+              <option value="Direct Bank Transfer">Direct Bank Transfer</option>
+            </select>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="padding: 1rem 1.25rem;">
+          <button type="button" class="btn btn-secondary" data-close="modalDepositPayment">Cancel</button>
+          <button type="submit" class="btn-orange-pill-lg" style="flex: 1;"><i class="fa-solid fa-check"></i> I Have Paid (Confirm)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalSupportChat">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-headset text-orange"></i> Live Support Chat</h3>
+        <button class="modal-close" data-close="modalSupportChat">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 300px; overflow-y: auto;" id="chatMessagesBox">
+        <div class="chat-msg">Hello! How can we assist you with your transactions today?</div>
+      </div>
+      <div class="modal-footer" style="gap: 6px;">
+        <input type="text" id="chatInput" class="form-control" placeholder="Type message..." style="flex: 1;">
+        <button class="btn btn-orange" id="btnSendChat">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Script -->
+  <script src="js/app.js"></script>
+</body>
+</html>
