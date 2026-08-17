@@ -130,6 +130,32 @@
     .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
     .modal-body { padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
     .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* RESPONSIVE DESIGN FOR MASTER ADMIN DASHBOARD */
+    .mobile-menu-btn { display: none; background: none; border: none; color: var(--text-dark); font-size: 1.4rem; cursor: pointer; margin-right: 12px; }
+    .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 99; }
+    .sidebar-overlay.active { display: block; }
+
+    @media screen and (max-width: 992px) {
+      .admin-sidebar { left: -260px; transition: left 0.3s ease; }
+      .admin-sidebar.active { left: 0; z-index: 10000; }
+      .admin-main { margin-left: 0; width: 100%; }
+      .mobile-menu-btn { display: inline-flex; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .admin-header { padding: 1rem; }
+      .content-body { padding: 1rem; }
+    }
+
+    @media screen and (max-width: 576px) {
+      .metrics-grid { grid-template-columns: 1fr; gap: 0.8rem; }
+      .form-grid-2 { grid-template-columns: 1fr; }
+      .header-title h1 { font-size: 1.2rem; }
+      .status-badge { display: none; }
+      .panel-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .panel-header > div { width: 100%; flex-wrap: wrap; }
+      .panel-header input, .panel-header select { width: 100% !important; }
+      .modal-box { width: 95%; max-height: 90vh; }
+    }
   </style>
 </head>
 <body>
@@ -177,12 +203,18 @@
       </div>
     </aside>
 
+    <!-- SIDEBAR BACKDROP OVERLAY FOR MOBILE -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
     <!-- MAIN DASHBOARD CONTENT -->
     <main class="admin-main">
       
       <!-- TOP HEADER -->
       <header class="admin-header">
-        <div class="header-title">
+        <div class="header-title" style="display: flex; align-items: center;">
+          <button id="btnMobileSidebarToggle" class="mobile-menu-btn" title="Toggle Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
           <h1 id="pageTitleHeading">Dashboard Overview</h1>
         </div>
         <div class="header-right">
@@ -249,8 +281,15 @@
           <div class="card-panel">
             <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
               <h3>User Accounts Database (Full Control)</h3>
-              <div style="display: flex; gap: 10px; align-items: center;">
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <input type="text" id="searchUsersInput" class="form-control" placeholder="Search by name, ID, phone..." style="width: 220px; padding: 6px 12px;">
+                <select id="sortUsersSelect" class="form-control" style="width: 170px; padding: 6px 12px;" onchange="AdminApp.renderUsersTable()">
+                  <option value="NEWEST">Order By: Newest</option>
+                  <option value="BALANCE_DESC">Balance: High to Low</option>
+                  <option value="BALANCE_ASC">Balance: Low to High</option>
+                  <option value="SCORE_DESC">Score: High to Low</option>
+                  <option value="NAME_ASC">Name (A-Z)</option>
+                </select>
                 <button class="btn btn-primary" id="btnOpenAddUserModal"><i class="fa-solid fa-user-plus"></i> + Add User</button>
                 <button class="btn btn-secondary" id="btnExportUsersCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
               </div>
@@ -286,6 +325,13 @@
                   <option value="ALL">All Types</option>
                   <option value="Deposit">Deposit</option>
                   <option value="Sell">Sell</option>
+                </select>
+                <select id="sortOrdersSelect" class="form-control" style="width: 160px; padding: 6px 12px;" onchange="AdminApp.renderOrdersTable()">
+                  <option value="NEWEST">Order By: Newest</option>
+                  <option value="OLDEST">Order By: Oldest</option>
+                  <option value="AMOUNT_DESC">Amount: High-Low</option>
+                  <option value="AMOUNT_ASC">Amount: Low-High</option>
+                  <option value="PENDING">Pending First</option>
                 </select>
                 <button class="btn btn-primary" id="btnOpenCreateOrderModal"><i class="fa-solid fa-plus-circle"></i> + Create Order</button>
                 <button class="btn btn-secondary" id="btnExportOrdersCsv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
@@ -866,6 +912,16 @@
           document.getElementById('adminShell').style.display = 'none';
           document.getElementById('authPassword').value = '';
         });
+
+        document.getElementById('btnMobileSidebarToggle')?.addEventListener('click', () => {
+          document.querySelector('.admin-sidebar')?.classList.toggle('active');
+          document.getElementById('sidebarOverlay')?.classList.toggle('active');
+        });
+
+        document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
+          document.querySelector('.admin-sidebar')?.classList.remove('active');
+          document.getElementById('sidebarOverlay')?.classList.remove('active');
+        });
       },
 
       bindMenu() {
@@ -881,6 +937,11 @@
             });
 
             document.getElementById('pageTitleHeading').textContent = target.textContent.trim();
+
+            if (window.innerWidth <= 992) {
+              document.querySelector('.admin-sidebar')?.classList.remove('active');
+              document.getElementById('sidebarOverlay')?.classList.remove('active');
+            }
           });
         });
       },
@@ -918,7 +979,8 @@
 
       renderUsersTable() {
         const searchQuery = (document.getElementById('searchUsersInput')?.value || '').toLowerCase().trim();
-        let filtered = this.state.users;
+        const sortVal = document.getElementById('sortUsersSelect')?.value || 'NEWEST';
+        let filtered = [...this.state.users];
 
         if (searchQuery) {
           filtered = filtered.filter(u => 
@@ -926,6 +988,18 @@
             u.name.toLowerCase().includes(searchQuery) ||
             (u.phone && u.phone.includes(searchQuery))
           );
+        }
+
+        if (sortVal === 'BALANCE_DESC') {
+          filtered.sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+        } else if (sortVal === 'BALANCE_ASC') {
+          filtered.sort((a, b) => Number(a.balance || 0) - Number(b.balance || 0));
+        } else if (sortVal === 'SCORE_DESC') {
+          filtered.sort((a, b) => Number(b.scorePoints || 0) - Number(a.scorePoints || 0));
+        } else if (sortVal === 'NAME_ASC') {
+          filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sortVal === 'NEWEST') {
+          filtered.sort((a, b) => String(b.id).localeCompare(String(a.id)));
         }
 
         const tbody = document.getElementById('usersTbody');
@@ -1030,8 +1104,9 @@
       renderOrdersTable() {
         const searchQuery = (document.getElementById('searchOrdersInput')?.value || '').toLowerCase().trim();
         const typeFilter = document.getElementById('filterOrderType')?.value || 'ALL';
+        const sortVal = document.getElementById('sortOrdersSelect')?.value || 'NEWEST';
 
-        let filtered = this.state.orders;
+        let filtered = [...this.state.orders];
 
         if (typeFilter !== 'ALL') {
           filtered = filtered.filter(o => o.orderType === typeFilter);
@@ -1043,6 +1118,18 @@
             (o.userName && o.userName.toLowerCase().includes(searchQuery)) ||
             (o.userId && String(o.userId).includes(searchQuery))
           );
+        }
+
+        if (sortVal === 'OLDEST') {
+          filtered.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+        } else if (sortVal === 'AMOUNT_DESC') {
+          filtered.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+        } else if (sortVal === 'AMOUNT_ASC') {
+          filtered.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+        } else if (sortVal === 'PENDING') {
+          filtered.sort((a, b) => (a.status === 'Pending' || a.status === 'Processing' || a.status === 'Submit' ? -1 : 1));
+        } else if (sortVal === 'NEWEST') {
+          filtered.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
         }
 
         const tbody = document.getElementById('ordersTbody');
@@ -1067,7 +1154,10 @@
               <td><strong style="color:var(--primary-orange);">₹ ${o.amount.toFixed(2)}</strong></td>
               <td>${o.usdtAmount || Math.round(o.amount / 110)} USDT</td>
               <td><code>${o.utrNumber || o.accountNumber || o.paymentChannel || 'Admin Direct'}</code></td>
-              <td><span class="badge ${badgeClass}">${o.status}</span></td>
+              <td>
+                <span class="badge ${badgeClass}">${o.status}</span>
+                ${o.matchedNote ? `<div style="font-size:0.72rem; color:#15803d; margin-top:4px; font-weight:700;"><i class="fa-solid fa-bolt"></i> ${o.matchedNote}</div>` : ''}
+              </td>
               <td>${new Date(o.timestamp).toLocaleString()}</td>
               <td>
                 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -1325,6 +1415,20 @@
         document.getElementById('searchOrdersInput')?.addEventListener('input', () => this.renderOrdersTable());
         document.getElementById('filterOrderType')?.addEventListener('change', () => this.renderOrdersTable());
         document.getElementById('searchWalletsInput')?.addEventListener('input', () => this.loadWallets());
+
+        // REAL-TIME LIVE UPI QR CODE GENERATOR LISTENER
+        const updateAdminLiveQrPreview = () => {
+          const upi = document.getElementById('rateAdminUpiId')?.value.trim() || '8104229900@upi';
+          const name = document.getElementById('rateMerchantName')?.value.trim() || 'Fintech Hub';
+          const uri = `upi://pay?pa=${upi}&pn=${encodeURIComponent(name)}&cu=INR`;
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uri)}`;
+          if (document.getElementById('adminQrPreviewImg')) {
+            document.getElementById('adminQrPreviewImg').src = qrUrl;
+          }
+        };
+
+        document.getElementById('rateAdminUpiId')?.addEventListener('input', updateAdminLiveQrPreview);
+        document.getElementById('rateMerchantName')?.addEventListener('input', updateAdminLiveQrPreview);
 
         document.querySelectorAll('[data-close]').forEach(btn => {
           btn.addEventListener('click', (e) => {

@@ -21,6 +21,9 @@ const FintechApp = {
     depDateFilter: 'ALL',
     depStatusFilter: 'ALL',
     sellStatusFilter: 'ALL',
+    depOrderBy: 'NEWEST',
+    sellOrderBy: 'NEWEST',
+    paymentOrderBy: 'NEWEST',
     unreadCount: 0,
     notifFilter: 'ALL',
     filterCategory: 'ALL',
@@ -56,6 +59,16 @@ const FintechApp = {
   async init() {
     this.bindAppNavigation();
     this.bindAppEvents();
+    await this.restoreSession();
+    
+    // Restore exact active tab on F5 page refresh
+    const savedTab = localStorage.getItem('fintech_active_tab');
+    if (savedTab && document.getElementById(`tab-${savedTab}`)) {
+      this.switchAppTab(savedTab);
+    } else {
+      this.switchAppTab('home');
+    }
+
     await this.loadAllAppData();
     // Real-time live background sync (every 2 seconds) so any change in Admin instantly updates website!
     setInterval(() => this.pollLiveUpdates(), 2000);
@@ -63,7 +76,8 @@ const FintechApp = {
 
   async pollLiveUpdates() {
     try {
-      const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+      if (!this.state.currentUser) return;
+      const activeId = this.state.currentUser.id;
       const [uRes, sRes, oRes, nRes] = await Promise.all([
         fetch(`/api/user?id=${activeId}`),
         fetch('/api/stats'),
@@ -99,6 +113,9 @@ const FintechApp = {
 
         if (document.getElementById('teamTotalCommDisplay')) document.getElementById('teamTotalCommDisplay').textContent = user.commission.toFixed(2);
         if (document.getElementById('teamDepTotal')) document.getElementById('teamDepTotal').textContent = user.deposit.toFixed(2);
+      } else if (uRes.status === 404) {
+        this.logout();
+        return;
       }
 
       if (sRes.ok) {
@@ -154,21 +171,22 @@ const FintechApp = {
     }
   },
 
-  // TEAM MANAGEMENT CONTROLLER (MATCHING SCREENSHOTS 1 & 2 IN ORANGE + WHITE)
+  // TEAM MANAGEMENT CONTROLLER
   openTeamView() {
     this.switchAppTab('team-statistics');
     this.loadTeamStatistics();
   },
 
   loadTeamStatistics() {
-    const user = this.state.currentUser || { id: '310422', commission: 0.00, deposit: 0.00 };
+    const user = this.state.currentUser || { id: '-', commission: 0.00, deposit: 0.00 };
     document.getElementById('teamTotalCommDisplay').textContent = user.commission.toFixed(2);
     document.getElementById('teamInviteCode').textContent = user.id;
     document.getElementById('teamDepTotal').textContent = user.deposit.toFixed(2);
   },
 
   copyInviteLink() {
-    const code = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const code = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!code) return this.showToast('Please sign in first', 'danger');
     const origin = window.location.origin || `http://${window.location.hostname}:3000`;
     const link = `${origin}/register?ref=${code}`;
     navigator.clipboard.writeText(link);
@@ -176,7 +194,8 @@ const FintechApp = {
   },
 
   shareAppTo(platform) {
-    const code = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const code = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!code) return this.showToast('Please sign in first', 'danger');
     const origin = window.location.origin || `http://${window.location.hostname}:3000`;
     const link = `${origin}/register?ref=${code}`;
     const text = encodeURIComponent(`Join Fintech Hub with my referral link: ${link}`);
@@ -312,6 +331,10 @@ const FintechApp = {
   },
 
   // USDT DEPOSIT CALCULATOR CONTROLLER (MATCHING SCREENSHOT IN ORANGE + WHITE)
+  openDepositOrdersView() {
+    this.openUsdtDepositView();
+  },
+
   openUsdtDepositView() {
     this.switchAppTab('usdt-deposit');
     this.calcUsdtReceive();
@@ -334,51 +357,16 @@ const FintechApp = {
   },
 
   async handleUsdtDepositSubmit() {
-    const amountUsdt = Number(document.getElementById('usdtCalcInput').value);
+    const amountUsdt = Number(document.getElementById('usdtCalcInput')?.value || 1);
     if (!amountUsdt || amountUsdt <= 0) return this.showToast('Please enter a valid USDT amount', 'danger');
 
     const rate = this.state.stats?.exchangeRate || 110;
     const amountInr = amountUsdt * rate;
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
-    const chain = this.state.selectedChain || 'TRC20';
-    const paymentChannel = `USDT (${chain})`;
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) return this.showToast('Please sign in first', 'danger');
 
-    try {
-      const res = await fetch('/api/user/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amountInr, userId, paymentChannel })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      // Generate Order Payment Details Data (Matching User Screenshot 2)
-      const now = new Date();
-      const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
-      const randomSerial = 'U' + now.getFullYear() +
-        String(now.getMonth() + 1).padStart(2, '0') +
-        String(now.getDate()).padStart(2, '0') +
-        String(now.getHours()).padStart(2, '0') +
-        String(now.getMinutes()).padStart(2, '0') +
-        String(now.getSeconds()).padStart(2, '0') +
-        Math.floor(100000 + Math.random() * 900000);
-
-      const targetAddress = chain === 'BSC' ? 
-        '0xb2767c43476e6fbefc1bb530b126d0c726d8842b' : 
-        'T9yD14Nj9j7xPz411K39qL00x9a83B81Z1';
-
-      document.getElementById('ordUsdtAmountDisplay').textContent = `USDT ${amountUsdt.toFixed(2)}`;
-      document.getElementById('ordAddressVal').textContent = targetAddress;
-      document.getElementById('ordTypeValText').textContent = `${chain}-USDT`;
-      document.getElementById('ordStatusVal').textContent = 'Pending';
-      document.getElementById('ordCreatedAtVal').textContent = dateStr;
-      document.getElementById('ordSerialNoVal').textContent = randomSerial;
-
-      this.switchAppTab('usdt-order-detail');
-      this.showToast(`Order created for ${amountUsdt} USDT (${chain})!`, 'success');
-    } catch (err) {
-      this.showToast(err.message, 'danger');
-    }
+    // Route directly to the Deposit Payment & Dynamic UPI QR Code Screen!
+    await this.handleCreateDepositOrder(null, amountInr);
   },
 
   copyOrderField(elementId, label) {
@@ -392,23 +380,9 @@ const FintechApp = {
   async init() {
     this.bindAppNavigation();
     this.bindAppEvents();
-    
-    // Check saved user session
-    const savedToken = localStorage.getItem('fintech_user_token');
-    const savedUser = localStorage.getItem('fintech_user_data');
-
-    if (savedToken && savedUser) {
-      try {
-        this.state.authToken = savedToken;
-        this.state.currentUser = JSON.parse(savedUser);
-        this.closeAuth();
-        await this.loadAllAppData();
-      } catch (e) {
-        this.showAuthOverlay();
-      }
-    } else {
-      this.showAuthOverlay();
-    }
+    await this.restoreSession();
+    await this.loadAllAppData();
+    setInterval(() => this.pollLiveUpdates(), 2000);
   },
 
   showAuthOverlay() {
@@ -443,12 +417,15 @@ const FintechApp = {
     }
   },
 
-  async demoLoginRajju() {
-    document.getElementById('loginInputStr').value = '310422';
-    document.getElementById('loginPasswordStr').value = '123';
-    
-    const form = document.getElementById('formUserLogin');
-    if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+  handleLogout() {
+    this.state.authToken = null;
+    this.state.currentUser = null;
+    localStorage.removeItem('fintech_user_token');
+    localStorage.removeItem('fintech_user_data');
+    if (document.getElementById('userName')) document.getElementById('userName').textContent = 'Not Logged In';
+    if (document.getElementById('userId')) document.getElementById('userId').textContent = '-';
+    this.showToast('Logged out successfully', 'info');
+    this.showAuthOverlay();
   },
 
   async handleLogin(e) {
@@ -514,12 +491,22 @@ const FintechApp = {
   },
 
   async loadSellOrders() {
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) {
+      this.state.sellOrders = [];
+      this.renderSellOrders();
+      return;
+    }
     const res = await fetch(`/api/user/sell-orders?userId=${userId}`);
     const orders = await res.json();
     this.state.sellOrders = orders;
     this.renderSellOrders();
     this.renderHomeTransactions();
+  },
+
+  sortSellOrders(orderVal) {
+    this.state.sellOrderBy = orderVal;
+    this.renderSellOrders();
   },
 
   filterSellStatus(status) {
@@ -539,6 +526,18 @@ const FintechApp = {
     let filtered = [...this.state.sellOrders];
     if (this.state.sellStatusFilter !== 'ALL') {
       filtered = filtered.filter(o => o.status.toUpperCase() === this.state.sellStatusFilter);
+    }
+
+    // Apply Order By sorting
+    const orderVal = this.state.sellOrderBy || 'NEWEST';
+    if (orderVal === 'NEWEST') {
+      filtered.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    } else if (orderVal === 'OLDEST') {
+      filtered.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    } else if (orderVal === 'AMOUNT_DESC') {
+      filtered.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    } else if (orderVal === 'AMOUNT_ASC') {
+      filtered.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
     }
 
     if (filtered.length === 0) {
@@ -574,6 +573,7 @@ const FintechApp = {
             <span><i class="fa-solid fa-building-columns text-blue"></i> ${o.payoutBank || 'Bank Transfer'} (${o.accountNumber || '****9900'})</span>
             <span><i class="fa-regular fa-clock"></i> ${new Date(o.timestamp).toLocaleString()}</span>
           </div>
+          ${o.matchedNote ? `<div style="font-size:0.75rem; color:#15803d; background:#dcfce7; padding:4px 8px; border-radius:6px; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bolt"></i> ${o.matchedNote}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -584,7 +584,8 @@ const FintechApp = {
     const amount = document.getElementById('sellAmountInput').value;
     const payoutBank = document.getElementById('sellBankInput').value;
     const accountNumber = document.getElementById('sellAccInput').value;
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) return this.showToast('Please sign in first', 'danger');
 
     try {
       const res = await fetch('/api/user/withdraw', {
@@ -611,12 +612,22 @@ const FintechApp = {
   },
 
   async loadDepositBuyOrders() {
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) {
+      this.state.depositOrders = [];
+      this.renderDepositBuyOrders();
+      return;
+    }
     const res = await fetch(`/api/user/deposit-orders?userId=${userId}`);
     const orders = await res.json();
     this.state.depositOrders = orders;
     this.renderDepositBuyOrders();
     this.renderHomeTransactions();
+  },
+
+  sortDepositOrders(orderVal) {
+    this.state.depOrderBy = orderVal;
+    this.renderDepositBuyOrders();
   },
 
   filterDepDate(range) {
@@ -657,6 +668,18 @@ const FintechApp = {
       filtered = filtered.filter(o => o.status.toUpperCase() === this.state.depStatusFilter);
     }
 
+    // Apply Order By sorting
+    const orderVal = this.state.depOrderBy || 'NEWEST';
+    if (orderVal === 'NEWEST') {
+      filtered.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    } else if (orderVal === 'OLDEST') {
+      filtered.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    } else if (orderVal === 'AMOUNT_DESC') {
+      filtered.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    } else if (orderVal === 'AMOUNT_ASC') {
+      filtered.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+    }
+
     if (filtered.length === 0) {
       container.innerHTML = `<div class="card text-center text-muted" style="padding: 2rem;">No deposit buy orders match your selected filters.</div>`;
       return;
@@ -690,6 +713,7 @@ const FintechApp = {
             <span><i class="fa-regular fa-credit-card text-orange"></i> ${o.paymentChannel || 'Paytm Wallet'}</span>
             <span><i class="fa-regular fa-clock"></i> ${new Date(o.timestamp).toLocaleString()}</span>
           </div>
+          ${o.matchedNote ? `<div style="font-size:0.75rem; color:#15803d; background:#dcfce7; padding:4px 8px; border-radius:6px; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bolt"></i> ${o.matchedNote}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -701,29 +725,99 @@ const FintechApp = {
     this.showToast(`Merchant UPI ID ${upiId} copied to clipboard!`, 'success');
   },
 
-  handleCreateDepositOrder(e) {
+  handleUsdtDepositSubmit() {
+    const usdtVal = Number(document.getElementById('usdtCalcInput')?.value || 1);
+    const rate = this.state.stats?.exchangeRate || 110;
+    const inrVal = usdtVal * rate;
+
+    if (document.getElementById('depAmountInput')) {
+      document.getElementById('depAmountInput').value = inrVal;
+    }
+
+    this.handleCreateDepositOrder(null, inrVal);
+  },
+
+  async handleCreateDepositOrder(arg1, arg2) {
+    let e = null;
+    let customAmount = null;
+
+    if (arg1 && typeof arg1.preventDefault === 'function') {
+      e = arg1;
+      if (typeof arg2 === 'number') customAmount = arg2;
+    } else if (typeof arg1 === 'number') {
+      customAmount = arg1;
+    } else if (typeof arg2 === 'number') {
+      customAmount = arg2;
+    }
+
     if (e) e.preventDefault();
-    const amount = Number(document.getElementById('depAmountInput').value);
-    const paymentChannel = document.getElementById('depChannelSelect').value;
+
+    let amount = 100;
+    if (typeof customAmount === 'number' && customAmount > 0) {
+      amount = customAmount;
+    } else {
+      const inputVal = Number(document.getElementById('depAmountInput')?.value);
+      const usdtVal = Number(document.getElementById('usdtCalcInput')?.value);
+      amount = inputVal || (usdtVal ? usdtVal * 110 : 100);
+    }
+
+    const paymentChannel = document.getElementById('depChannelSelect')?.value || 'Paytm Wallet / UPI';
+    
+    if (!this.state.currentUser) {
+      this.showToast('Please sign in first to complete payment deposit', 'danger');
+      this.showLogin();
+      return;
+    }
+
+    const userId = this.state.currentUser.id;
 
     if (!amount || amount <= 0) {
       return this.showToast('Please enter a valid deposit amount', 'danger');
     }
 
+    // Fetch P2P Direct Match
+    let targetUpiId = this.state.stats?.adminUpiId || '8104229900@upi';
+    let targetMerchantName = this.state.stats?.merchantName || 'Fintech Hub';
+    let matchedSellOrderId = null;
+
+    try {
+      const matchRes = await fetch(`/api/p2p/match-order?amount=${amount}&userId=${userId}`);
+      if (matchRes.ok) {
+        const matchData = await matchRes.json();
+        if (matchData.hasMatch) {
+          targetUpiId = matchData.upiId;
+          targetMerchantName = matchData.peerName;
+          matchedSellOrderId = matchData.sellOrderId;
+          this.state.activeMatchedOrderId = matchedSellOrderId;
+          
+          if (document.getElementById('p2pPeerPayBox')) {
+            document.getElementById('p2pPeerPayBox').style.display = 'block';
+            document.getElementById('p2pPeerNameDisplay').textContent = `${matchData.peerName} (User #${matchData.peerUserId})`;
+            document.getElementById('p2pPeerBankDisplay').textContent = `${matchData.payoutBank} (${matchData.accountNumber})`;
+          }
+        } else {
+          this.state.activeMatchedOrderId = null;
+          if (document.getElementById('p2pPeerPayBox')) {
+            document.getElementById('p2pPeerPayBox').style.display = 'none';
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('P2P match lookup error:', err);
+    }
+
     const rate = this.state.stats?.exchangeRate || 110;
     const usdtVal = (amount / rate).toFixed(2);
-    const upiId = this.state.stats?.adminUpiId || '8104229900@upi';
-    const merchantName = this.state.stats?.merchantName || 'Fintech Hub';
 
     // Construct Dynamic UPI Deep Link URI & QR Code API
-    const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount.toFixed(2)}&cu=INR&tn=Deposit%20Order`;
+    const upiUri = `upi://pay?pa=${targetUpiId}&pn=${encodeURIComponent(targetMerchantName)}&am=${amount.toFixed(2)}&cu=INR&tn=P2P%20Deposit%20Order`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiUri)}`;
 
-    document.getElementById('paySummaryInr').textContent = `₹ ${amount.toFixed(2)}`;
-    document.getElementById('paySummaryUsdt').textContent = `${usdtVal} USDT`;
+    if (document.getElementById('paySummaryInr')) document.getElementById('paySummaryInr').textContent = `₹ ${amount.toFixed(2)}`;
+    if (document.getElementById('paySummaryUsdt')) document.getElementById('paySummaryUsdt').textContent = `${usdtVal} USDT`;
     
     if (document.getElementById('displayAdminUpiId')) {
-      document.getElementById('displayAdminUpiId').textContent = upiId;
+      document.getElementById('displayAdminUpiId').textContent = targetUpiId;
     }
 
     // Render QR Code using Client-side QRCode library if available
@@ -772,7 +866,38 @@ const FintechApp = {
       document.getElementById('payMethodUsedSelect').value = paymentChannel || 'Paytm Wallet / UPI';
     }
 
-    document.getElementById('modalDepositPayment')?.classList.add('active');
+    this.switchAppTab('deposit-payment');
+  },
+
+  selectFixedAmount(type, amount, btnElem) {
+    if (type === 'dep') {
+      const input = document.getElementById('depAmountInput');
+      if (input) input.value = amount;
+      if (btnElem && btnElem.parentElement) {
+        btnElem.parentElement.querySelectorAll('.btn-preset-chip').forEach(b => b.classList.remove('active'));
+        btnElem.classList.add('active');
+      }
+      this.handleCreateDepositOrder(null, amount);
+    } else if (type === 'sell') {
+      const input = document.getElementById('sellAmountInput');
+      if (input) input.value = amount;
+      if (btnElem && btnElem.parentElement) {
+        btnElem.parentElement.querySelectorAll('.btn-preset-chip').forEach(b => b.classList.remove('active'));
+        btnElem.classList.add('active');
+      }
+    }
+  },
+
+  selectFixedUsdt(val, btnElem) {
+    const input = document.getElementById('usdtCalcInput');
+    if (input) {
+      input.value = val;
+      this.calcUsdtReceive();
+    }
+    if (btnElem && btnElem.parentElement) {
+      btnElem.parentElement.querySelectorAll('.btn-preset-chip').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+    }
   },
 
   async handleConfirmDepositPayment(e) {
@@ -780,7 +905,10 @@ const FintechApp = {
     const amount = Number(document.getElementById('depAmountInput').value);
     const paymentChannel = document.getElementById('payMethodUsedSelect').value;
     const utrNumber = document.getElementById('payUtrInput').value.trim();
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    const matchedSellOrderId = this.state.activeMatchedOrderId;
+
+    if (!userId) return this.showToast('Please sign in first', 'danger');
 
     if (!utrNumber || utrNumber.length < 6) {
       return this.showToast('Please enter valid 12-digit UTR / Reference Number', 'danger');
@@ -790,16 +918,16 @@ const FintechApp = {
       const res = await fetch('/api/user/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, userId, paymentChannel, utrNumber })
+        body: JSON.stringify({ amount, userId, paymentChannel, utrNumber, matchedSellOrderId })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      document.getElementById('modalDepositPayment')?.classList.remove('active');
-      document.getElementById('depAmountInput').value = '';
-      document.getElementById('payUtrInput').value = '';
+      if (document.getElementById('payUtrInput')) document.getElementById('payUtrInput').value = '';
+      this.state.activeMatchedOrderId = null;
 
-      this.showToast(`Deposit Order #${data.order.id} submitted! UTR: ${utrNumber}. Admin approval pending.`, 'success');
+      this.showToast(data.message || `₹${amount} added to wallet balance & credited!`, 'success');
+      this.switchAppTab('home');
       await this.loadDepositBuyOrders();
       await this.loadUser();
     } catch (err) {
@@ -822,7 +950,8 @@ const FintechApp = {
   async handleScoreConvert(e) {
     if (e) e.preventDefault();
     const points = Number(document.getElementById('convertScoreInput').value);
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) return this.showToast('Please sign in first', 'danger');
 
     try {
       const res = await fetch('/api/user/convert-score', {
@@ -852,7 +981,11 @@ const FintechApp = {
   },
 
   switchAppTab(tabId) {
+    if (this.state.activeAppTab && this.state.activeAppTab !== tabId) {
+      this.state.previousTab = this.state.activeAppTab;
+    }
     this.state.activeAppTab = tabId;
+    localStorage.setItem('fintech_active_tab', tabId);
 
     document.querySelectorAll('.nav-tab-item').forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-tab') === tabId);
@@ -863,6 +996,14 @@ const FintechApp = {
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  goBackFromPayment() {
+    if (this.state.previousTab) {
+      this.switchAppTab(this.state.previousTab);
+    } else {
+      this.switchAppTab('deposit-orders');
+    }
   },
 
   // DATA LOADERS
@@ -941,42 +1082,49 @@ const FintechApp = {
   },
 
   async loadUser() {
-    const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    if (!this.state.currentUser) {
+      if (document.getElementById('userName')) document.getElementById('userName').textContent = 'Click to Login';
+      if (document.getElementById('userId')) document.getElementById('userId').textContent = 'Guest';
+      return;
+    }
+
+    const activeId = this.state.currentUser.id;
     const res = await fetch(`/api/user?id=${activeId}`);
+    if (!res.ok) return;
     const user = await res.json();
     this.state.currentUser = user;
 
-    document.getElementById('userName').textContent = user.name;
-    document.getElementById('userId').textContent = user.id;
+    if (document.getElementById('userName')) document.getElementById('userName').textContent = user.name;
+    if (document.getElementById('userId')) document.getElementById('userId').textContent = user.id;
 
-    document.getElementById('homeBalance').textContent = user.balance.toFixed(2);
-    document.getElementById('homeDeposit').textContent = user.deposit.toFixed(2);
-    document.getElementById('homeWithdrawal').textContent = user.withdrawal.toFixed(2);
+    if (document.getElementById('homeBalance')) document.getElementById('homeBalance').textContent = user.balance.toFixed(2);
+    if (document.getElementById('homeDeposit')) document.getElementById('homeDeposit').textContent = user.deposit.toFixed(2);
+    if (document.getElementById('homeWithdrawal')) document.getElementById('homeWithdrawal').textContent = user.withdrawal.toFixed(2);
 
     // Score Page Data
-    document.getElementById('userScoreDisplay').textContent = (user.scorePoints || 0).toLocaleString();
-    document.getElementById('scoreBalVal').textContent = user.balance.toFixed(2);
-    document.getElementById('scoreDepVal').textContent = user.deposit.toFixed(2);
-    document.getElementById('scoreWithVal').textContent = user.withdrawal.toFixed(2);
-    document.getElementById('scoreCommVal').textContent = user.commission.toFixed(2);
+    if (document.getElementById('userScoreDisplay')) document.getElementById('userScoreDisplay').textContent = (user.scorePoints || 0).toLocaleString();
+    if (document.getElementById('scoreBalVal')) document.getElementById('scoreBalVal').textContent = user.balance.toFixed(2);
+    if (document.getElementById('scoreDepVal')) document.getElementById('scoreDepVal').textContent = user.deposit.toFixed(2);
+    if (document.getElementById('scoreWithVal')) document.getElementById('scoreWithVal').textContent = user.withdrawal.toFixed(2);
+    if (document.getElementById('scoreCommVal')) document.getElementById('scoreCommVal').textContent = user.commission.toFixed(2);
 
-    document.getElementById('paymentBalance').textContent = user.balance.toFixed(0);
-    document.getElementById('paymentReward').textContent = user.cashbackReward || 0;
-    document.getElementById('paymentPending').textContent = user.cashbackPending || 0;
+    if (document.getElementById('paymentBalance')) document.getElementById('paymentBalance').textContent = user.balance.toFixed(0);
+    if (document.getElementById('paymentReward')) document.getElementById('paymentReward').textContent = user.cashbackReward || 0;
+    if (document.getElementById('paymentPending')) document.getElementById('paymentPending').textContent = user.cashbackPending || 0;
 
-    document.getElementById('statBalance').textContent = user.balance.toFixed(2);
-    document.getElementById('statSell').textContent = (user.sellTotal || 0).toFixed(2);
-    document.getElementById('statDeposit').textContent = user.deposit.toFixed(2);
-    document.getElementById('statCommission').textContent = user.commission.toFixed(2);
+    if (document.getElementById('statBalance')) document.getElementById('statBalance').textContent = user.balance.toFixed(2);
+    if (document.getElementById('statSell')) document.getElementById('statSell').textContent = (user.sellTotal || 0).toFixed(2);
+    if (document.getElementById('statDeposit')) document.getElementById('statDeposit').textContent = user.deposit.toFixed(2);
+    if (document.getElementById('statCommission')) document.getElementById('statCommission').textContent = user.commission.toFixed(2);
 
-    document.getElementById('assetDeposit').textContent = user.deposit.toFixed(0);
-    document.getElementById('assetWithdraw').textContent = user.withdrawal.toFixed(0);
-    document.getElementById('assetCommission').textContent = user.commission.toFixed(0);
+    if (document.getElementById('assetDeposit')) document.getElementById('assetDeposit').textContent = user.deposit.toFixed(0);
+    if (document.getElementById('assetWithdraw')) document.getElementById('assetWithdraw').textContent = user.withdrawal.toFixed(0);
+    if (document.getElementById('assetCommission')) document.getElementById('assetCommission').textContent = user.commission.toFixed(0);
 
-    document.getElementById('mdlBal').textContent = user.balance.toFixed(2);
-    document.getElementById('mdlDep').textContent = user.deposit.toFixed(2);
-    document.getElementById('mdlWith').textContent = user.withdrawal.toFixed(2);
-    document.getElementById('mdlComm').textContent = user.commission.toFixed(2);
+    if (document.getElementById('mdlBal')) document.getElementById('mdlBal').textContent = user.balance.toFixed(2);
+    if (document.getElementById('mdlDep')) document.getElementById('mdlDep').textContent = user.deposit.toFixed(2);
+    if (document.getElementById('mdlWith')) document.getElementById('mdlWith').textContent = user.withdrawal.toFixed(2);
+    if (document.getElementById('mdlComm')) document.getElementById('mdlComm').textContent = user.commission.toFixed(2);
   },
 
   async loadStats() {
@@ -1103,6 +1251,11 @@ const FintechApp = {
     await this.loadNotifications();
   },
 
+  sortPaymentOffers(orderVal) {
+    this.state.paymentOrderBy = orderVal;
+    this.renderOffers();
+  },
+
   renderOffers() {
     const container = document.getElementById('paymentOffersList');
     if (!container) return;
@@ -1110,6 +1263,18 @@ const FintechApp = {
     let filtered = [...this.state.offers];
     if (this.state.filterCategory !== 'ALL') {
       filtered = filtered.filter(o => o.category === this.state.filterCategory);
+    }
+
+    // Apply Order By sorting
+    const orderVal = this.state.paymentOrderBy || 'NEWEST';
+    if (orderVal === 'BONUS_DESC') {
+      filtered.sort((a, b) => Number(b.specialBonus || 0) - Number(a.specialBonus || 0));
+    } else if (orderVal === 'AMOUNT_DESC') {
+      filtered.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    } else if (orderVal === 'AMOUNT_ASC') {
+      filtered.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+    } else if (orderVal === 'NEWEST') {
+      filtered.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
     }
 
     if (filtered.length === 0) {
@@ -1362,7 +1527,8 @@ const FintechApp = {
 
   bindAppEvents() {
     document.getElementById('btnCopyId')?.addEventListener('click', () => {
-      const activeId = this.state.currentUser ? this.state.currentUser.id : '310422';
+      const activeId = this.state.currentUser ? this.state.currentUser.id : '';
+      if (!activeId) return this.showToast('Please sign in first', 'danger');
       navigator.clipboard.writeText(activeId);
       this.showToast(`User ID ${activeId} copied to clipboard!`, 'success');
     });
@@ -1501,12 +1667,7 @@ const FintechApp = {
     // LOGOUT ACCOUNT
     document.getElementById('btnLogout')?.addEventListener('click', () => {
       if (confirm('Are you sure you want to logout of your account?')) {
-        localStorage.removeItem('fintech_user_token');
-        localStorage.removeItem('fintech_user_data');
-        this.state.authToken = null;
-        this.state.currentUser = null;
-        this.showAuthOverlay();
-        this.showToast('Logged out of session', 'info');
+        this.logout();
       }
     });
 
@@ -1519,7 +1680,8 @@ const FintechApp = {
   },
 
   async claimOffer(offerId) {
-    const userId = this.state.currentUser ? this.state.currentUser.id : '310422';
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    if (!userId) return this.showToast('Please sign in first', 'danger');
     try {
       const res = await fetch('/api/payment/claim', {
         method: 'POST',
@@ -1555,5 +1717,163 @@ const FintechApp = {
       toast.style.transform = 'translateY(10px)';
       setTimeout(() => toast.remove(), 300);
     }, 3000);
+  },
+
+  // ==========================================
+  // AUTHENTICATION & USER SESSION ENGINE
+  // ==========================================
+  onProfileClick() {
+    if (this.state.currentUser) {
+      this.switchAppTab('my');
+    } else {
+      this.showLogin();
+    }
+  },
+
+  showLogin() {
+    this.switchAppTab('login');
+  },
+
+  showRegister() {
+    this.switchAppTab('register');
+  },
+
+  closeAuth() {
+    this.switchAppTab('home');
+  },
+
+  togglePassVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const btn = input.nextElementSibling || input.parentElement?.querySelector('.btn-toggle-pass');
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (btn) btn.innerHTML = '<i class="fa-solid fa-eye-slash" style="color: var(--primary-orange);"></i>';
+    } else {
+      input.type = 'password';
+      if (btn) btn.innerHTML = '<i class="fa-regular fa-eye"></i>';
+    }
+  },
+
+  async handleLogin(e) {
+    if (e) e.preventDefault();
+    const loginInput = document.getElementById('loginInputStr').value.trim();
+    const password = document.getElementById('loginPasswordStr').value.trim();
+
+    if (!loginInput || !password) {
+      return this.showToast('Please enter mobile number/ID and password', 'danger');
+    }
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginInput, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.state.currentUser = data.user;
+      this.state.authToken = data.token;
+      localStorage.setItem('fintech_user_id', data.user.id);
+      localStorage.setItem('fintech_token', data.token);
+      localStorage.setItem('fintech_user_data', JSON.stringify(data.user));
+
+      this.showToast(`Welcome back, ${data.user.name}!`, 'success');
+      this.switchAppTab('home');
+      
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async handleRegister(e) {
+    if (e) e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+    const referralCode = document.getElementById('regReferral')?.value.trim() || '';
+
+    if (!name || !phone || !password) {
+      return this.showToast('Please fill out all required fields', 'danger');
+    }
+    if (phone.length < 10) {
+      return this.showToast('Please enter valid 10-digit mobile number', 'danger');
+    }
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, password, referralCode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      this.state.currentUser = data.user;
+      this.state.authToken = data.token;
+      localStorage.setItem('fintech_user_id', data.user.id);
+      localStorage.setItem('fintech_token', data.token);
+      localStorage.setItem('fintech_user_data', JSON.stringify(data.user));
+
+      this.showToast(data.message || 'Registration successful! Welcome bonus credited.', 'success');
+      this.switchAppTab('home');
+
+      await this.loadAllAppData();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  logout() {
+    this.state.currentUser = null;
+    this.state.authToken = null;
+    localStorage.removeItem('fintech_user_id');
+    localStorage.removeItem('fintech_token');
+    localStorage.removeItem('fintech_user_data');
+    
+    this.loadUser();
+    this.showLogin();
+    this.showToast('Logged out of session', 'info');
+  },
+
+  async restoreSession() {
+    const savedUserId = localStorage.getItem('fintech_user_id');
+    const savedUserData = localStorage.getItem('fintech_user_data');
+
+    if (savedUserId) {
+      try {
+        const res = await fetch(`/api/user?id=${savedUserId}`);
+        if (res.ok) {
+          const user = await res.json();
+          this.state.currentUser = user;
+          localStorage.setItem('fintech_user_data', JSON.stringify(user));
+          this.loadUser();
+          return true;
+        } else if (res.status === 404) {
+          localStorage.removeItem('fintech_user_id');
+          localStorage.removeItem('fintech_token');
+          localStorage.removeItem('fintech_user_data');
+          this.state.currentUser = null;
+          this.loadUser();
+          return false;
+        }
+      } catch (err) {
+        console.warn('Session restore error:', err);
+      }
+    }
+
+    if (savedUserData) {
+      try {
+        const user = JSON.parse(savedUserData);
+        this.state.currentUser = user;
+        this.loadUser();
+        return true;
+      } catch (e) {}
+    }
+
+    this.loadUser();
+    return false;
   }
 };

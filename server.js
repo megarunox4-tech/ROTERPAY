@@ -17,56 +17,7 @@ app.get('/admin', (req, res) => {
 });
 
 // Multi-User Database Storage
-let users = [
-  {
-    id: '310422',
-    name: 'Rajju',
-    phone: '9876543210',
-    password: '123',
-    balance: 5000.00,
-    deposit: 3000.00,
-    withdrawal: 1000.00,
-    commission: 500.00,
-    scorePoints: 1250,
-    sellTotal: 0.00,
-    cashbackReward: 0,
-    cashbackPending: 0,
-    status: 'ACTIVE',
-    createdAt: '2026-07-26'
-  },
-  {
-    id: '512093',
-    name: 'Vikram Singh',
-    phone: '9812345678',
-    password: '123',
-    balance: 2500.00,
-    deposit: 2000.00,
-    withdrawal: 0.00,
-    commission: 500.00,
-    scorePoints: 3400,
-    sellTotal: 0.00,
-    cashbackReward: 50,
-    cashbackPending: 0,
-    status: 'ACTIVE',
-    createdAt: '2026-07-25'
-  },
-  {
-    id: '784102',
-    name: 'Priya Sharma',
-    phone: '9765432109',
-    password: '123',
-    balance: 1200.00,
-    deposit: 1000.00,
-    withdrawal: 0.00,
-    commission: 200.00,
-    scorePoints: 850,
-    sellTotal: 0.00,
-    cashbackReward: 20,
-    cashbackPending: 0,
-    status: 'ACTIVE',
-    createdAt: '2026-07-24'
-  }
-];
+let users = [];
 
 let statsData = {
   exchangeRate: 110,
@@ -85,133 +36,17 @@ let statsData = {
   date: new Date().toLocaleDateString('en-GB')
 };
 
-let notifications = [
-  {
-    id: 1,
-    title: 'Welcome Special Bonus!',
-    body: 'Your account is active. Complete daily claim tasks to earn 4% cashback!',
-    type: 'Reward',
-    isRead: false,
-    time: 'Just now'
-  },
-  {
-    id: 2,
-    title: 'USDT Rate Update',
-    body: 'Real-time exchange rate updated to 110 INR/USDT. Start selling now!',
-    type: 'Info',
-    isRead: false,
-    time: '10 mins ago'
-  }
-];
+let notifications = [];
 
-let paymentOffers = [
-  { id: 1, amount: 611, code: 'EWLReL', income: 24.44, specialBonus: 3.00, category: '100-300' },
-  { id: 2, amount: 653, code: '8g9gfd', income: 26.12, specialBonus: 3.00, category: '301-500' },
-  { id: 3, amount: 890, code: 'K9L2xP', income: 35.60, specialBonus: 5.00, category: '501-1000' },
-  { id: 4, amount: 1250, code: 'M4N7vQ', income: 50.00, specialBonus: 8.00, category: '501-1000' }
-];
+let paymentOffers = [];
 
 let userWallets = [];
 
-// DEPOSIT BUY ORDERS SAMPLE DATA
-let depositBuyOrders = [
-  {
-    id: 891021,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Deposit',
-    amount: 1100,
-    usdtAmount: 10,
-    status: 'Processing',
-    paymentChannel: 'Paytm Wallet',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 891018,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Deposit',
-    amount: 550,
-    usdtAmount: 5,
-    status: 'Submit',
-    paymentChannel: 'Freecharge Wallet',
-    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 890850,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Deposit',
-    amount: 2200,
-    usdtAmount: 20,
-    status: 'Success',
-    paymentChannel: 'Mobikwik Wallet',
-    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 889201,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Deposit',
-    amount: 4400,
-    usdtAmount: 40,
-    status: 'Close',
-    paymentChannel: 'Bank Transfer',
-    timestamp: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
+// DEPOSIT BUY ORDERS STORAGE
+let depositBuyOrders = [];
 
-// SELL ORDERS (WITHDRAWALS) SAMPLE DATA WITH VARIOUS STATUSES
-let sellOrders = [
-  {
-    id: 991001,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Sell',
-    amount: 500,
-    usdtAmount: 4.54,
-    status: 'Pending', // Pending status
-    payoutBank: 'State Bank of India (SBI)',
-    accountNumber: '****3892',
-    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
-  },
-  {
-    id: 990982,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Sell',
-    amount: 1200,
-    usdtAmount: 10.90,
-    status: 'Submitted', // Submitted status
-    payoutBank: 'HDFC Bank',
-    accountNumber: '****7120',
-    timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() // 12 hours ago
-  },
-  {
-    id: 990710,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Sell',
-    amount: 2500,
-    usdtAmount: 22.72,
-    status: 'Success', // Success status
-    payoutBank: 'ICICI Bank',
-    accountNumber: '****9012',
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
-  },
-  {
-    id: 989800,
-    userId: '310422',
-    userName: 'Rajju',
-    orderType: 'Sell',
-    amount: 800,
-    usdtAmount: 7.27,
-    status: 'Timeout', // Timeout status
-    payoutBank: 'Paytm Payments Bank',
-    accountNumber: '****4411',
-    timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days ago
-  }
-];
+// SELL ORDERS (WITHDRAWALS) STORAGE
+let sellOrders = [];
 
 let pendingOrders = [];
 let transactions = [];
@@ -239,15 +74,17 @@ function getLocalIp() {
 
 // DEPOSIT BUY ORDERS API
 app.get('/api/user/deposit-orders', (req, res) => {
-  const userId = req.query.userId || '310422';
-  const orders = depositBuyOrders.filter(o => o.userId === userId || userId === '310422');
+  const userId = req.query.userId;
+  if (!userId) return res.json([]);
+  const orders = depositBuyOrders.filter(o => o.userId === userId);
   res.json(orders);
 });
 
 // SELL ORDERS API
 app.get('/api/user/sell-orders', (req, res) => {
-  const userId = req.query.userId || '310422';
-  const orders = sellOrders.filter(o => o.userId === userId || userId === '310422');
+  const userId = req.query.userId;
+  if (!userId) return res.json([]);
+  const orders = sellOrders.filter(o => o.userId === userId);
   res.json(orders);
 });
 
@@ -260,7 +97,9 @@ app.post('/api/user/convert-score', (req, res) => {
     return res.status(400).json({ error: 'Minimum score conversion is 100 points' });
   }
 
-  const targetUser = users.find(u => u.id === (userId || '310422')) || users[0];
+  if (!userId) return res.status(401).json({ error: 'User ID required' });
+  const targetUser = users.find(u => u.id === userId);
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
   if (targetUser.scorePoints < numPoints) {
     return res.status(400).json({ error: `Insufficient Score Points! You have ${targetUser.scorePoints} PTS` });
@@ -352,7 +191,7 @@ app.post('/api/auth/register', (req, res) => {
     cashbackReward: 0,
     cashbackPending: 0,
     status: 'ACTIVE',
-    referralCode: referralCode || '310422',
+    referralCode: referralCode || '',
     createdAt: new Date().toISOString().split('T')[0]
   };
 
@@ -417,17 +256,63 @@ app.post('/api/admin/notifications/broadcast', (req, res) => {
 // PUBLIC USER & APP ROUTES
 
 app.get('/api/user', (req, res) => {
-  const userId = req.query.id || '310422';
-  const user = users.find(u => u.id === userId) || users[0];
+  const userId = req.query.id;
+  if (!userId) return res.status(401).json({ error: 'User ID is required' });
+  const user = users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
 });
 
+// DIRECT P2P ORDER MATCHING ENDPOINT
+app.get('/api/p2p/match-order', (req, res) => {
+  const { amount, userId } = req.query;
+  const num = Number(amount);
+
+  // Find an active pending sell order (withdrawal) from another user matching amount
+  const matchedSellOrder = sellOrders.find(s => 
+    (s.status === 'Pending' || s.status === 'Submitted') && 
+    s.userId !== userId && 
+    s.amount === num
+  );
+
+  if (matchedSellOrder) {
+    const peerUpi = matchedSellOrder.accountNumber.includes('@') 
+      ? matchedSellOrder.accountNumber 
+      : `${matchedSellOrder.userId}@upi`;
+
+    res.json({
+      hasMatch: true,
+      sellOrderId: matchedSellOrder.id,
+      peerUserId: matchedSellOrder.userId,
+      peerName: matchedSellOrder.userName,
+      payoutBank: matchedSellOrder.payoutBank,
+      accountNumber: matchedSellOrder.accountNumber,
+      upiId: peerUpi,
+      amount: matchedSellOrder.amount
+    });
+  } else {
+    // Return admin merchant details if no peer is waiting for withdrawal right now
+    res.json({
+      hasMatch: false,
+      peerName: statsData.merchantName,
+      upiId: statsData.adminUpiId,
+      amount: num
+    });
+  }
+});
+
 app.post('/api/user/topup', (req, res) => {
-  const { amount, userId, paymentChannel, utrNumber } = req.body;
+  const { amount, userId, paymentChannel, utrNumber, matchedSellOrderId } = req.body;
   const num = Number(amount);
   if (!num || num <= 0) return res.status(400).json({ error: 'Invalid top-up amount' });
 
-  const targetUser = users.find(u => u.id === (userId || '310422')) || users[0];
+  if (!userId) return res.status(401).json({ error: 'User ID is required' });
+  const targetUser = users.find(u => u.id === userId);
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+  // 1. Instantly credit deposit amount to User A's wallet balance
+  targetUser.balance += num;
+  targetUser.deposit += num;
 
   const newOrder = {
     id: Math.floor(800000 + Math.random() * 100000),
@@ -436,24 +321,90 @@ app.post('/api/user/topup', (req, res) => {
     orderType: 'Deposit',
     amount: num,
     usdtAmount: Math.round(num / statsData.exchangeRate),
-    status: 'Submitted',
+    status: 'Success',
     paymentChannel: paymentChannel || 'UPI Direct',
-    utrNumber: utrNumber || 'Pending UTR',
+    utrNumber: utrNumber || 'Auto-Verified P2P',
     timestamp: new Date().toISOString()
   };
 
   depositBuyOrders.unshift(newOrder);
-  logAudit('Top-up Deposit Submitted', `User ${targetUser.name} submitted deposit ₹ ${num} (UTR: ${newOrder.utrNumber})`, req);
-  res.json({ success: true, message: `Deposit Order #${newOrder.id} created & pending Admin verification!`, order: newOrder });
+
+  transactions.unshift({
+    id: Date.now(),
+    userId: targetUser.id,
+    type: `Deposit Added (₹${num})`,
+    amount: num,
+    status: 'Success',
+    timestamp: new Date().toISOString()
+  });
+
+  // 2. DIRECT P2P MATCH FULFILLMENT:
+  let matchedSellOrder = null;
+  if (matchedSellOrderId) {
+    matchedSellOrder = sellOrders.find(s => s.id === Number(matchedSellOrderId));
+  }
+  if (!matchedSellOrder) {
+    matchedSellOrder = sellOrders.find(s => (s.status === 'Pending' || s.status === 'Submitted') && s.userId !== targetUser.id && s.amount === num);
+  }
+
+  if (matchedSellOrder) {
+    matchedSellOrder.status = 'Success';
+    matchedSellOrder.p2pMatchedWith = targetUser.id;
+    matchedSellOrder.matchedNote = `Direct P2P Paid by User #${targetUser.id} (${targetUser.name}) via UTR: ${utrNumber || 'Verified'}`;
+    newOrder.matchedNote = `Direct P2P Paid to User #${matchedSellOrder.userId} (${matchedSellOrder.userName}) Bank Account`;
+    
+    // Add Notification for User 2 (Withdrawal Requestor)
+    notifications.unshift({
+      id: Date.now(),
+      title: '⚡ P2P Direct Payment Received!',
+      body: `User ${targetUser.name} (#${targetUser.id}) transferred ₹${num} directly to your ${matchedSellOrder.payoutBank} account (${matchedSellOrder.accountNumber}). UTR: ${utrNumber || 'Verified'}.`,
+      type: 'Success',
+      isRead: false,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+
+    logAudit('P2P Direct Transfer Completed', `User ${targetUser.name} paid ₹${num} directly to User ${matchedSellOrder.userName} (Withdrawal Order #${matchedSellOrder.id})`, req);
+
+    return res.json({
+      success: true,
+      message: `⚡ Direct P2P Transfer Success! Paid ₹${num} directly to ${matchedSellOrder.userName}. Wallet credited!`,
+      order: newOrder,
+      newBalance: targetUser.balance
+    });
+  }
+
+  logAudit('Top-up Deposit Added', `User ${targetUser.name} added deposit ₹${num}. Wallet balance updated to ₹${targetUser.balance.toFixed(2)}`, req);
+
+  res.json({
+    success: true,
+    message: `₹${num} added to wallet balance & pool liquidity updated!`,
+    order: newOrder,
+    newBalance: targetUser.balance
+  });
 });
 
 app.post('/api/user/withdraw', (req, res) => {
   const { amount, userId, payoutBank, accountNumber } = req.body;
   const num = Number(amount);
-  const targetUser = users.find(u => u.id === (userId || '310422')) || users[0];
+  if (!userId) return res.status(401).json({ error: 'User ID is required' });
+  const targetUser = users.find(u => u.id === userId);
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
   if (!num || num <= 0) return res.status(400).json({ error: 'Invalid withdrawal amount' });
-  if (num > targetUser.balance) return res.status(400).json({ error: 'Insufficient wallet balance' });
+  if (num > targetUser.balance) return res.status(400).json({ error: `Insufficient wallet balance! Your balance is ₹${targetUser.balance.toFixed(2)}` });
+
+  // Deduct balance from user
+  targetUser.balance -= num;
+  targetUser.withdrawal += num;
+
+  // Check liquidity pool (sum of deposits vs withdrawals)
+  const totalDepositPool = users.reduce((acc, u) => acc + u.deposit, 0);
+  const totalWithdrawalDone = users.reduce((acc, u) => acc + u.withdrawal, 0);
+  const availableLiquidity = Math.max(1000, totalDepositPool - totalWithdrawalDone);
+
+  // Auto-match P2P withdrawal if liquidity is sufficient
+  const isAutoMatched = availableLiquidity >= num;
+  const initialStatus = isAutoMatched ? 'Success' : 'Pending';
 
   const newOrder = {
     id: Math.floor(900000 + Math.random() * 100000),
@@ -462,18 +413,39 @@ app.post('/api/user/withdraw', (req, res) => {
     orderType: 'Sell',
     amount: num,
     usdtAmount: Number((num / statsData.exchangeRate).toFixed(2)),
-    status: 'Pending', // Initial status
+    status: initialStatus,
     payoutBank: payoutBank || 'Bank Transfer',
     accountNumber: accountNumber || '****9900',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    matchedNote: isAutoMatched ? 'Auto-fulfilled via P2P Liquidity Pool' : 'Queued for Next Peer Deposit'
   };
 
   sellOrders.unshift(newOrder);
-  res.json({ success: true, message: 'Sell Order submitted & pending Admin processing!', order: newOrder });
+
+  transactions.unshift({
+    id: Date.now(),
+    userId: targetUser.id,
+    type: `Withdrawal (₹${num})`,
+    amount: num,
+    status: initialStatus,
+    timestamp: new Date().toISOString()
+  });
+
+  logAudit('Withdrawal Requested', `User ${targetUser.name} requested sell order ₹${num}. Status: ${initialStatus}`, req);
+
+  res.json({
+    success: true,
+    message: isAutoMatched
+      ? `⚡ Instant P2P Match! ₹${num} withdrawal auto-matched & processed to ${payoutBank} (${accountNumber})!`
+      : `₹${num} Withdrawal submitted & queued in P2P Liquidity Pool. Status: Pending Peer Deposit.`,
+    order: newOrder,
+    newBalance: targetUser.balance
+  });
 });
 
 app.get('/api/user/orders', (req, res) => {
-  const userId = req.query.id || '310422';
+  const userId = req.query.id;
+  if (!userId) return res.json([]);
   const userDeposits = depositBuyOrders.filter(o => o.userId === userId);
   const userSells = sellOrders.filter(o => o.userId === userId);
   const combined = [...userDeposits, ...userSells];
@@ -496,7 +468,9 @@ app.post('/api/payment/claim', (req, res) => {
   const offer = paymentOffers.find(o => o.id === Number(offerId));
   if (!offer) return res.status(404).json({ error: 'Offer not found' });
 
-  const targetUser = users.find(u => u.id === (userId || '310422')) || users[0];
+  if (!userId) return res.status(401).json({ error: 'User ID is required' });
+  const targetUser = users.find(u => u.id === userId);
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
   const totalEarned = offer.income + (statsData.specialRewardActive ? offer.specialBonus : 0);
 
   targetUser.commission += totalEarned;
@@ -844,10 +818,10 @@ app.post('/api/admin/wallets/add', (req, res) => {
   const { userId, walletName, walletAddress, walletType, holderName } = req.body;
   if (!walletAddress) return res.status(400).json({ error: 'Account or wallet address required' });
 
-  const targetUser = users.find(u => u.id === userId) || users[0];
+  const targetUser = users.find(u => u.id === userId);
   const newWallet = {
     id: Date.now(),
-    userId: targetUser ? targetUser.id : (userId || '310422'),
+    userId: targetUser ? targetUser.id : (userId || 'N/A'),
     userName: targetUser ? targetUser.name : 'System User',
     name: walletName || 'Payment Tool',
     address: walletAddress,
