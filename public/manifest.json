@@ -1,21 +1,21 @@
 {
-  "name": "Fintech Hub - Master Platform",
-  "short_name": "FintechHub",
+  "name": "ROTERPAY - Fintech Hub Platform",
+  "short_name": "ROTERPAY",
   "description": "Fast & Secure INR/USDT Fintech Hub, P2P Orders & Wallet",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
+  "background_color": "#0f172a",
   "theme_color": "#ff6600",
   "icons": [
     {
-      "src": "https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=FintechHub",
+      "src": "/images/roterpay-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=FintechHub",
+      "src": "/images/roterpay-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

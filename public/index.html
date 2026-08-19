@@ -19,12 +19,16 @@
   <!-- QRCode JS Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <!-- Brand Favicon & Mobile Icons -->
+  <link rel="icon" type="image/svg+xml" href="/images/roterpay-vector-logo.svg">
+  <link rel="apple-touch-icon" href="/images/roterpay-logo.png">
+
   <!-- Mobile PWA Meta & Manifest -->
   <meta name="theme-color" content="#ff6600">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="FintechHub">
+  <meta name="apple-mobile-web-app-title" content="ROTERPAY">
   <link rel="manifest" href="/manifest.json">
 
   <!-- Custom Stylesheet -->
@@ -229,9 +233,9 @@
 
     <!-- Global Desktop Navigation Header (Hidden on Mobile) -->
     <header class="top-nav-bar desktop-only">
-      <div class="nav-brand">
-        <div class="logo-box"><i class="fa-solid fa-wallet text-orange"></i></div>
-        <h2>FINTECH<span>HUB</span></h2>
+      <div class="nav-brand" style="display: flex; align-items: center; gap: 10px;">
+        <img src="/images/roterpay-vector-logo.svg" alt="ROTERPAY Logo" style="width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(255,102,0,0.3));">
+        <h2>ROTER<span style="color: var(--primary-orange);">PAY</span></h2>
       </div>
 
       <div class="nav-mode-toggle">
@@ -340,15 +344,13 @@
             </div>
           </div>
 
-          <!-- App Download Quick Banner (Orange Theme with Official Brand Logo) -->
+          <!-- App Download Quick Banner (Orange Theme with Official ROTERPAY Logo) -->
           <div class="app-download-banner-card" onclick="FintechApp.openDownloadAppModal()" style="cursor: pointer; background: linear-gradient(135deg, #ff6600, #ff8800); border-radius: 18px; padding: 14px 16px; color: #ffffff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; box-shadow: var(--shadow-orange); border: 1.5px solid rgba(255, 255, 255, 0.2); transition: transform 0.2s ease;">
             <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 46px; height: 46px; border-radius: 14px; background: #ffffff; color: var(--primary-orange); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); border: 2px solid #ffe3d1; flex-shrink: 0;">
-                <i class="fa-solid fa-wallet"></i>
-              </div>
+              <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" style="width: 48px; height: 48px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); object-fit: cover; border: 2px solid #ffe3d1; flex-shrink: 0;">
               <div>
                 <div style="display: flex; align-items: center; gap: 6px;">
-                  <strong style="font-size: 0.98rem; font-family: var(--font-heading); font-weight: 900; letter-spacing: 0.3px;">FINTECH HUB</strong>
+                  <strong style="font-size: 0.98rem; font-family: var(--font-heading); font-weight: 900; letter-spacing: 0.3px;">ROTERPAY</strong>
                   <span style="background: rgba(255, 255, 255, 0.25); font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 8px;">OFFICIAL APP</span>
                 </div>
                 <span style="font-size: 0.76rem; opacity: 0.95; font-weight: 600; display: block; margin-top: 1px;"><i class="fa-brands fa-android"></i> Android APK v1.1.9 • 8.4 MB</span>
@@ -1761,18 +1763,16 @@
     </div>
   </div>
 
-  <!-- APP DOWNLOAD MODAL DIALOG (ORANGE THEME WITH OFFICIAL BRAND LOGO) -->
+  <!-- APP DOWNLOAD MODAL DIALOG (ORANGE THEME WITH OFFICIAL ROTERPAY LOGO) -->
   <div class="modal-backdrop" id="modalDownloadApp">
     <div class="modal" style="max-width: 420px; border-radius: 24px; overflow: hidden; border: 2px solid var(--orange-border); box-shadow: 0 20px 50px rgba(255, 102, 0, 0.2);">
       <div style="background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; padding: 1.6rem 1.25rem 1.4rem; text-align: center; position: relative;">
         <button class="modal-close" data-close="modalDownloadApp" style="position: absolute; right: 14px; top: 12px; color: #ffffff; background: rgba(0,0,0,0.2); width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
         
-        <!-- Official Brand Logo -->
-        <div style="width: 72px; height: 72px; border-radius: 22px; background: #ffffff; color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 2.3rem; margin-bottom: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.18); border: 2px solid #ffe3d1;">
-          <i class="fa-solid fa-wallet"></i>
-        </div>
+        <!-- Official ROTERPAY Brand Logo -->
+        <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" style="width: 82px; height: 82px; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); object-fit: cover; border: 2.5px solid #ffe3d1; margin-bottom: 8px; display: inline-block;">
         
-        <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; margin: 0; letter-spacing: 0.3px;">FINTECH HUB</h3>
+        <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; margin: 0; letter-spacing: 0.3px;">ROTERPAY</h3>
         <p style="font-size: 0.82rem; opacity: 0.95; margin-top: 4px;">Official Mobile App • Version <span id="mdlAppVersion" style="font-weight:800; background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:6px;">v1.1.9</span></p>
       </div>
 

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8800"/>
+      <stop offset="50%" stop-color="#ff6600"/>
+      <stop offset="100%" stop-color="#e65100"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#ff6600" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Shield Crest -->
+  <path d="M100 15 L165 42 C165 110 100 175 100 185 C100 175 35 110 35 42 Z" fill="url(#shieldGrad)" stroke="url(#orangeGrad)" stroke-width="4" filter="url(#glow)"/>
+  
+  <!-- Inner Shield Highlight -->
+  <path d="M100 26 L153 49 C153 104 100 159 100 168 C100 159 47 104 47 49 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+
+  <!-- Stylized Geometric 'R' -->
+  <path d="M72 55 H108 C122 55 130 64 130 76 C130 87 122 96 108 96 H88 V138 H72 Z" fill="url(#orangeGrad)"/>
+  <path d="M88 70 H106 C113 70 117 73 117 76 C117 80 113 83 106 83 H88 Z" fill="#0f172a"/>
+
+  <!-- Dynamic Upward Growth Arrow (Tail of R) -->
+  <path d="M96 92 L132 138 H114 L86 98 Z" fill="url(#goldGrad)"/>
+  
+  <!-- Futuristic Fintech Swoosh Arrow -->
+  <path d="M50 120 Q80 142 120 108 L142 124 L138 95 L110 102 L124 112 Q88 135 60 114 Z" fill="url(#orangeGrad)" filter="url(#glow)"/>
+</svg>
