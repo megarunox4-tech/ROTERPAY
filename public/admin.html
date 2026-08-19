@@ -408,41 +408,54 @@
       display: flex;
       align-items: flex-end;
       gap: 8px;
+      max-width: 80%;
+      margin-bottom: 4px;
     }
-    .wa-bubble-row.admin { flex-direction: row-reverse; }
+    .wa-bubble-row.admin {
+      flex-direction: row-reverse;
+      margin-left: auto;
+    }
+    .wa-bubble-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 100%;
+    }
+    .wa-bubble-row.admin .wa-bubble-content {
+      align-items: flex-end;
+    }
 
     .wa-bubble {
-      max-width: 72%;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      line-height: 1.5;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      line-height: 1.45;
       position: relative;
       word-break: break-word;
+      max-width: 100%;
     }
     .wa-bubble.user {
       background: #ffffff;
       color: #1e293b;
-      border-radius: 2px 12px 12px 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-radius: 4px 18px 18px 18px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
     .wa-bubble.admin {
       background: linear-gradient(135deg, #ff6600, #ea580c);
       color: #ffffff;
-      border-radius: 12px 2px 12px 12px;
-      box-shadow: 0 2px 8px rgba(255,102,0,0.25);
+      border-radius: 18px 4px 18px 18px;
+      box-shadow: 0 3px 12px rgba(255,102,0,0.28);
     }
     .wa-bubble-meta {
-      font-size: 0.63rem;
+      font-size: 0.65rem;
       margin-top: 4px;
-      opacity: 0.72;
+      opacity: 0.8;
       display: flex;
       align-items: center;
       gap: 4px;
-      justify-content: flex-end;
     }
-    .wa-bubble.user .wa-bubble-meta { color: #94a3b8; }
-    .wa-bubble.admin .wa-bubble-meta { color: rgba(255,255,255,0.8); }
+    .wa-bubble.user .wa-bubble-meta { color: #64748b; justify-content: flex-start; }
+    .wa-bubble.admin .wa-bubble-meta { color: rgba(255,255,255,0.9); justify-content: flex-end; }
     .wa-sender-name {
       font-size: 0.72rem;
       font-weight: 700;
@@ -1671,6 +1684,17 @@
             document.getElementById('adminAuthScreen').style.display = 'none';
             document.getElementById('adminShell').style.display = 'flex';
             await this.loadAll();
+
+            if (!this.syncInterval) {
+              this.syncInterval = setInterval(() => {
+                if (this.state.isAuthenticated) {
+                  this.loadSupportThreads();
+                  if (this.state.activeSupportUserId) {
+                    this.loadActiveThreadMessages();
+                  }
+                }
+              }, 2500);
+            }
           } catch (err) {
             alert(err.message);
           }
@@ -2624,8 +2648,8 @@
           if (isAdmin) {
             return `
               <div class="wa-bubble-row admin">
-                <div class="wa-admin-avatar-sm"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
-                <div>
+                <div class="wa-admin-avatar-sm" title="Admin"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
+                <div class="wa-bubble-content">
                   <div class="wa-bubble admin">
                     ${m.message}
                     <div class="wa-bubble-meta">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem;"></i></div>
@@ -2637,7 +2661,7 @@
             return `
               <div class="wa-bubble-row">
                 <div class="wa-avatar-sm">${(m.userName || 'U').charAt(0).toUpperCase()}</div>
-                <div>
+                <div class="wa-bubble-content">
                   <div class="wa-sender-name">${m.userName || 'App User'} <span style="font-size:0.65rem;font-weight:400;color:#94a3b8;">#${m.userId}</span></div>
                   <div class="wa-bubble user">
                     ${m.message}

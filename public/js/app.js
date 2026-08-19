@@ -1088,7 +1088,7 @@ const FintechApp = {
         return `
           <div class="uc-bubble-row admin-msg">
             <img src="/images/roterpay-logo.png" class="uc-avatar-admin" alt="Admin" onerror="this.style.display='none'">
-            <div>
+            <div class="uc-bubble-content">
               <div class="uc-bubble-sender">ROTERPAY Support</div>
               <div class="uc-bubble admin">
                 ${m.message}
@@ -1101,7 +1101,7 @@ const FintechApp = {
         return `
           <div class="uc-bubble-row user-msg">
             <div class="uc-avatar-user">${userInitial}</div>
-            <div>
+            <div class="uc-bubble-content">
               <div class="uc-bubble user">
                 ${m.message}
                 <div class="uc-bubble-time">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.58rem;"></i></div>
