@@ -1249,6 +1249,14 @@ const FintechApp = {
     if (sendIcon) {
       sendIcon.className = 'fa-solid fa-check';
     }
+
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      const stream = document.getElementById('userChatStream');
+      if (stream) stream.scrollTop = stream.scrollHeight;
+    }, 80);
   },
 
   cancelEditMode() {

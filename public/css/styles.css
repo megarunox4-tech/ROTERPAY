@@ -2245,11 +2245,12 @@ body:has(#tab-support.active) .floating-bot-widget,
   flex: 1;
   background: transparent;
   border: none;
-  font-size: 0.92rem;
+  font-size: 16px !important; /* 16px prevents mobile auto-zoom distortion */
   outline: none;
   color: #111b21;
   font-family: inherit;
   padding: 8px 0;
+  min-width: 0;
 }
 
 .user-chat-input-icon {
@@ -2262,6 +2263,7 @@ body:has(#tab-support.active) .floating-bot-widget,
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .user-chat-send-btn {
@@ -2290,10 +2292,13 @@ body:has(#tab-support.active) .floating-bot-widget,
   justify-content: space-between;
   background: #ffffff;
   border-left: 4px solid var(--primary-orange);
-  padding: 6px 14px;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  padding: 6px 12px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  width: 100%;
+  box-sizing: border-box;
   animation: fadeInSheet 0.15s ease;
+  flex-shrink: 0;
 }
 .edit-banner-text {
   display: flex;
