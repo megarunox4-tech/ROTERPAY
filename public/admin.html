@@ -355,6 +355,81 @@
       font-size: 0.72rem;
       color: rgba(255,255,255,0.85);
     }
+
+    /* ONLINE & TYPING INDICATORS */
+    .wa-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .wa-online-badge {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    }
+    .wa-online-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #bbf7d0 !important;
+      font-weight: 700;
+    }
+    .wa-online-dot {
+      width: 7px;
+      height: 7px;
+      background: #4ade80;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px #4ade80;
+      animation: pulseGreen 1.5s infinite;
+    }
+    @keyframes pulseGreen {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    .wa-typing-text {
+      color: #fef08a !important;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      animation: blinkText 1.2s infinite;
+    }
+    @keyframes blinkText {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* TYPING 3-DOT BUBBLE */
+    .wa-typing-bubble {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 16px;
+      background: #ffffff;
+      border-radius: 4px 18px 18px 18px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      width: fit-content;
+    }
+    .wa-typing-dot {
+      width: 7px;
+      height: 7px;
+      background: #ff6600;
+      border-radius: 50%;
+      animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+    .wa-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .wa-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+      40% { transform: scale(1); opacity: 1; }
+    }
     .wa-chat-actions {
       display: flex;
       gap: 8px;
@@ -1102,7 +1177,7 @@
 
               <!-- Input Bar -->
               <form id="formAdminReply" class="wa-input-bar" onsubmit="AdminPortal.handleSendAdminReply(event)">
-                <input type="text" id="adminReplyInput" class="wa-input-field" placeholder="Type a message..." required autocomplete="off">
+                <input type="text" id="adminReplyInput" class="wa-input-field" placeholder="Type a message..." required autocomplete="off" oninput="AdminPortal.sendAdminTypingSignal()">
                 <button type="submit" class="wa-send-btn">
                   <i class="fa-solid fa-paper-plane"></i>
                 </button>
@@ -2561,14 +2636,19 @@
           const lastMsg = t.lastmessage || t.lastMessage || 'No message';
           const unread = parseInt(t.unreadcount || t.unreadCount || 0);
           const isActive = this.state.activeSupportUserId === userId;
+          const isOnline = !!t.isOnline;
+          const isTyping = !!t.isTyping;
           const timeStr = t.lasttimestamp ? new Date(t.lasttimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
           return `
             <div class="wa-thread-item ${isActive ? 'active' : ''}" onclick="AdminPortal.selectSupportThread('${userId}', '${userName.replace(/'/g, "\\'")}')">
-              <div class="wa-thread-avatar">${userName.charAt(0).toUpperCase()}</div>
+              <div class="wa-avatar-wrap">
+                <div class="wa-thread-avatar">${userName.charAt(0).toUpperCase()}</div>
+                ${isOnline ? '<span class="wa-online-badge" title="Online now"></span>' : ''}
+              </div>
               <div class="wa-thread-info">
                 <div class="wa-thread-name">${userName}</div>
-                <div class="wa-thread-last">${t.lastsender === 'admin' ? '✓ You: ' : ''}${lastMsg}</div>
+                <div class="wa-thread-last">${isTyping ? '<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-pen-nib"></i> typing...</span>' : (t.lastsender === 'admin' ? '✓ You: ' : '') + lastMsg}</div>
               </div>
               <div class="wa-thread-meta">
                 <span class="wa-thread-time">${timeStr}</span>
@@ -2613,10 +2693,35 @@
         if (!userId) return;
 
         try {
-          const res = await this.apiFetch(`/api/support/messages?userId=${userId}`);
-          if (!res.ok) return;
-          const msgs = await res.json();
-          this.renderAdminChatStream(msgs);
+          const [mRes, pRes] = await Promise.all([
+            this.apiFetch(`/api/support/messages?userId=${userId}`),
+            this.apiFetch(`/api/support/presence?userId=${userId}`)
+          ]);
+
+          if (mRes.ok) {
+            const msgs = await mRes.json();
+            let isUserTyping = false;
+            let isUserOnline = false;
+
+            if (pRes && pRes.ok) {
+              const presence = await pRes.json();
+              isUserTyping = !!presence.isUserTyping;
+              isUserOnline = !!presence.isUserOnline;
+            }
+
+            const subEl = document.getElementById('activeThreadUserSub');
+            if (subEl) {
+              if (isUserTyping) {
+                subEl.innerHTML = '<span class="wa-typing-text"><i class="fa-solid fa-pen-nib"></i> typing...</span>';
+              } else if (isUserOnline) {
+                subEl.innerHTML = '<span class="wa-online-tag"><span class="wa-online-dot"></span> Online</span> • ID: #' + userId;
+              } else {
+                subEl.innerHTML = 'ID: #' + userId + ' • Offline';
+              }
+            }
+
+            this.renderAdminChatStream(msgs, isUserTyping);
+          }
 
           await this.apiFetch('/api/support/mark-read', {
             method: 'POST',
@@ -2627,7 +2732,7 @@
         }
       },
 
-      renderAdminChatStream(msgs) {
+      renderAdminChatStream(msgs, isUserTyping = false) {
         const container = document.getElementById('adminChatStream');
         if (!container) return;
 
@@ -2642,7 +2747,7 @@
           return;
         }
 
-        container.innerHTML = msgs.map(m => {
+        let html = msgs.map(m => {
           const isAdmin = m.sender === 'admin';
           const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           if (isAdmin) {
@@ -2673,7 +2778,33 @@
           }
         }).join('');
 
+        if (isUserTyping) {
+          const userName = this.state.activeSupportUserName || 'User';
+          html += `
+            <div class="wa-bubble-row">
+              <div class="wa-avatar-sm">${userName.charAt(0).toUpperCase()}</div>
+              <div class="wa-bubble-content">
+                <div class="wa-typing-bubble" title="${userName} is typing...">
+                  <span class="wa-typing-dot"></span>
+                  <span class="wa-typing-dot"></span>
+                  <span class="wa-typing-dot"></span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
         container.scrollTop = container.scrollHeight;
+      },
+
+      sendAdminTypingSignal() {
+        const userId = this.state.activeSupportUserId;
+        if (!userId) return;
+        this.apiFetch('/api/support/typing', {
+          method: 'POST',
+          body: JSON.stringify({ userId, sender: 'admin', isTyping: true })
+        }).catch(() => {});
       },
 
       async handleSendAdminReply(e) {

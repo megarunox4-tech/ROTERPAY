@@ -1046,11 +1046,31 @@ const FintechApp = {
   async loadSupportMessages() {
     const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
     try {
-      const res = await fetch(`/api/support/messages?userId=${userId}`);
-      if (res.ok) {
-        const msgs = await res.json();
-        this.renderUserChatMessages(msgs);
+      const [mRes, pRes] = await Promise.all([
+        fetch(`/api/support/messages?userId=${userId}`),
+        fetch(`/api/support/presence?userId=${userId}`)
+      ]);
+
+      let isAdminTyping = false;
+      if (pRes && pRes.ok) {
+        const presence = await pRes.json();
+        isAdminTyping = !!presence.isAdminTyping;
       }
+
+      const infoSpan = document.querySelector('.user-chat-agent-info span');
+      if (infoSpan) {
+        if (isAdminTyping) {
+          infoSpan.innerHTML = '<span class="uc-typing-text"><i class="fa-solid fa-pen-nib"></i> Support is typing...</span>';
+        } else {
+          infoSpan.innerHTML = '<i class="fa-solid fa-circle" style="font-size:0.5rem; color:#4ade80;"></i> Online • Live Desk';
+        }
+      }
+
+      if (mRes.ok) {
+        const msgs = await mRes.json();
+        this.renderUserChatMessages(msgs, isAdminTyping);
+      }
+
       await fetch('/api/support/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1061,7 +1081,7 @@ const FintechApp = {
     }
   },
 
-  renderUserChatMessages(msgs) {
+  renderUserChatMessages(msgs, isAdminTyping = false) {
     const container = document.getElementById('userChatStream');
     if (!container) return;
 
@@ -1081,7 +1101,7 @@ const FintechApp = {
 
     const userInitial = this.state.currentUser ? this.state.currentUser.name.charAt(0).toUpperCase() : 'U';
 
-    container.innerHTML = msgs.map(m => {
+    let html = msgs.map(m => {
       const isAdmin = m.sender === 'admin';
       const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       if (isAdmin) {
@@ -1112,7 +1132,32 @@ const FintechApp = {
       }
     }).join('');
 
+    if (isAdminTyping) {
+      html += `
+        <div class="uc-bubble-row admin-msg">
+          <img src="/images/roterpay-logo.png" class="uc-avatar-admin" alt="Admin" onerror="this.style.display='none'">
+          <div class="uc-bubble-content">
+            <div class="uc-typing-bubble" title="ROTERPAY Support is typing...">
+              <span class="uc-dot"></span>
+              <span class="uc-dot"></span>
+              <span class="uc-dot"></span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
     container.scrollTop = container.scrollHeight;
+  },
+
+  sendUserTypingSignal() {
+    const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
+    fetch('/api/support/typing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, sender: 'user', isTyping: true })
+    }).catch(() => {});
   },
 
   async handleSendSupportMessage(e) {

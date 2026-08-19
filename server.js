@@ -1552,8 +1552,58 @@ app.get('/api/admin/logs', requireAdminAuth, async (req, res) => {
 });
 
 // ==========================================
-// 4. REAL-TIME LIVE SUPPORT CHAT API
+// 4. REAL-TIME LIVE SUPPORT CHAT & PRESENCE API
 // ==========================================
+
+// Real-time Chat Presence & Typing Tracker
+const chatPresence = {};
+
+function getOrCreatePresence(userId) {
+  if (!userId) return null;
+  const cleanId = String(userId);
+  if (!chatPresence[cleanId]) {
+    chatPresence[cleanId] = {
+      userLastSeen: 0,
+      userTypingUntil: 0,
+      adminLastSeen: 0,
+      adminTypingUntil: 0
+    };
+  }
+  return chatPresence[cleanId];
+}
+
+// Typing status signal (from user or admin)
+app.post('/api/support/typing', (req, res) => {
+  const { userId, sender, isTyping } = req.body;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  const p = getOrCreatePresence(userId);
+  const now = Date.now();
+  if (sender === 'admin') {
+    p.adminLastSeen = now;
+    p.adminTypingUntil = isTyping ? now + 3500 : 0;
+  } else {
+    p.userLastSeen = now;
+    p.userTypingUntil = isTyping ? now + 3500 : 0;
+  }
+  res.json({ success: true });
+});
+
+// Presence & typing check endpoint
+app.get('/api/support/presence', (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  const p = getOrCreatePresence(userId);
+  const now = Date.now();
+  res.json({
+    userId,
+    isUserOnline: (now - p.userLastSeen) < 15000,
+    isUserTyping: now < p.userTypingUntil,
+    isAdminOnline: true,
+    isAdminTyping: now < p.adminTypingUntil,
+    userLastSeen: p.userLastSeen,
+    adminLastSeen: p.adminLastSeen
+  });
+});
 
 // Get user chat messages
 app.get('/api/support/messages', async (req, res) => {
@@ -1649,14 +1699,20 @@ app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
       GROUP BY sm.userid
       ORDER BY MAX(sm.timestamp) DESC
     `);
-    const threads = rawThreads.map(t => ({
-      userId: t.userid,
-      userName: t.username || 'App User',
-      lastMessage: t.lastmessage || '',
-      lastSender: t.lastsender || 'user',
-      lastTimestamp: t.lasttimestamp,
-      unreadCount: parseInt(t.unreadcount || 0)
-    }));
+    const now = Date.now();
+    const threads = rawThreads.map(t => {
+      const p = chatPresence[String(t.userid)] || { userLastSeen: 0, userTypingUntil: 0 };
+      return {
+        userId: t.userid,
+        userName: t.username || 'App User',
+        lastMessage: t.lastmessage || '',
+        lastSender: t.lastsender || 'user',
+        lastTimestamp: t.lasttimestamp,
+        unreadCount: parseInt(t.unreadcount || 0),
+        isOnline: (now - p.userLastSeen) < 15000,
+        isTyping: now < p.userTypingUntil
+      };
+    });
     res.json(threads);
   } catch (err) {
     console.error('Support threads error:', err);

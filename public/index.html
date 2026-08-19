@@ -1626,7 +1626,7 @@
 
             <!-- Chat Input Form Bar -->
             <form id="formUserSupportChat" class="user-chat-input-bar" onsubmit="FintechApp.handleSendSupportMessage(event)">
-              <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Type a message to Admin..." required autocomplete="off">
+              <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Type a message to Admin..." required autocomplete="off" oninput="FintechApp.sendUserTypingSignal()">
               <button type="submit" class="user-chat-send-btn" title="Send">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>

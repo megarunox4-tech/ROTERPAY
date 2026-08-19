@@ -2114,6 +2114,48 @@ body:has(#tab-support.active) .floating-bot-widget,
   .uc-bubble-row { max-width: 88%; }
 }
 
+/* USER CHAT TYPING 3-DOT BUBBLE */
+.uc-typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-radius: 4px 18px 18px 18px;
+  border: 1px solid var(--orange-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  width: fit-content;
+}
+.uc-dot {
+  width: 7px;
+  height: 7px;
+  background: #ff6600;
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+.uc-dot:nth-child(1) { animation-delay: -0.32s; }
+.uc-dot:nth-child(2) { animation-delay: -0.16s; }
+
+.uc-typing-text {
+  color: #fef08a !important;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: blinkText 1.2s infinite;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes blinkText {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+
 
 
 
