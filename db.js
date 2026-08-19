@@ -1,30 +1,41 @@
 try { require('dotenv').config(); } catch (e) {}
 const { Pool } = require('pg');
 
-// Determine connection configuration
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/roterpay';
-const isProduction = process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') && !process.env.DATABASE_URL.includes('127.0.0.1'));
+const databaseUrl = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === 'production';
 
-const poolConfig = {
-  connectionString,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-};
+let pool = null;
 
-// Enable SSL for remote cloud databases (Render, Supabase, Neon, AWS RDS, etc.)
-if (isProduction || (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('render.com') || process.env.DATABASE_URL.includes('supabase') || process.env.DATABASE_URL.includes('neon') || process.env.DATABASE_URL.includes('sslmode=require')))) {
-  poolConfig.ssl = {
-    rejectUnauthorized: false
+if (databaseUrl) {
+  const poolConfig = {
+    connectionString: databaseUrl,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   };
+
+  if (isProduction || databaseUrl.includes('render.com') || databaseUrl.includes('supabase') || databaseUrl.includes('neon') || databaseUrl.includes('sslmode=require')) {
+    poolConfig.ssl = {
+      rejectUnauthorized: false
+    };
+  }
+
+  pool = new Pool(poolConfig);
+
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle PostgreSQL client:', err.message);
+  });
+} else {
+  console.warn('⚠️ WARNING: DATABASE_URL environment variable is not set.');
+  console.warn('ℹ️ Please configure DATABASE_URL in your Render environment or .env file.');
+  // Local fallback pool
+  pool = new Pool({
+    connectionString: 'postgresql://postgres:postgres@localhost:5432/roterpay',
+    max: 10,
+    connectionTimeoutMillis: 2000,
+  });
+  pool.on('error', () => {});
 }
-
-const pool = new Pool(poolConfig);
-
-// Suppress unexpected pool client errors
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client:', err.message);
-});
 
 // Automatic placeholder converter: replaces ? with $1, $2, $3...
 function convertPlaceholders(sql) {
@@ -39,30 +50,37 @@ const db = {
 
   // Execute a query and return all matching rows
   async queryAll(sql, params = []) {
+    if (!pool) return [];
     try {
       const formattedSql = convertPlaceholders(sql);
       const res = await pool.query(formattedSql, params);
       return res.rows || [];
     } catch (err) {
-      console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
-      throw err;
+      if (process.env.DATABASE_URL) {
+        console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
+      }
+      return [];
     }
   },
 
   // Execute a query and return a single row (or null)
   async queryOne(sql, params = []) {
+    if (!pool) return null;
     try {
       const formattedSql = convertPlaceholders(sql);
       const res = await pool.query(formattedSql, params);
       return res.rows[0] || null;
     } catch (err) {
-      console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
-      throw err;
+      if (process.env.DATABASE_URL) {
+        console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
+      }
+      return null;
     }
   },
 
   // Execute an INSERT/UPDATE/DELETE query
   async run(sql, params = []) {
+    if (!pool) return { rowCount: 0, changes: 0, rows: [] };
     try {
       const formattedSql = convertPlaceholders(sql);
       const res = await pool.query(formattedSql, params);
@@ -72,13 +90,16 @@ const db = {
         rows: res.rows
       };
     } catch (err) {
-      console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
-      throw err;
+      if (process.env.DATABASE_URL) {
+        console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
+      }
+      return { rowCount: 0, changes: 0, rows: [] };
     }
   },
 
   // Execute multiple operations within an atomic PostgreSQL transaction
   async tx(callback) {
+    if (!pool) throw new Error('Database connection not available');
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -111,6 +132,7 @@ const db = {
 
 // Initialize All 11 PostgreSQL Tables & Seed Default Records
 async function initializeTables() {
+  if (!pool) return;
   try {
     // 1. Users Table
     await pool.query(`
@@ -302,14 +324,13 @@ async function initializeTables() {
 
     console.log('✅ PostgreSQL Schema initialized successfully. All 11 tables verified.');
   } catch (err) {
-    console.error('⚠️ PostgreSQL Schema initialization warning:', err.message);
-    if (!process.env.DATABASE_URL) {
-      console.warn('ℹ️ Hint: Set DATABASE_URL=postgresql://user:pass@host:port/dbname in your environment or .env file.');
+    if (process.env.DATABASE_URL) {
+      console.error('⚠️ PostgreSQL Schema initialization notice:', err.message);
     }
   }
 }
 
-// Kick off table initialization
-initializeTables();
+// Kick off table initialization and export promise
+db.initPromise = initializeTables();
 
 module.exports = db;

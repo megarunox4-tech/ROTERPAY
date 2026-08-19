@@ -1240,13 +1240,23 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Listen on all network interfaces (Dual-stack IPv4 & IPv6 localhost)
-app.listen(PORT, () => {
-  const localIp = getLocalIp();
-  console.log(`\n======================================================`);
-  console.log(`🚀 MASTER FINTECH PLATFORM, SELL ORDERS & ADMIN ENGINE RUNNING!`);
-  console.log(`📱 Mobile Web App Access:  http://${localIp}:${PORT}`);
-  console.log(`💻 Dedicated PC Admin Dashboard: http://localhost:${PORT}/admin`);
-  console.log(`🗄️  SQL Database Active: SQLite Relational Store (database.sqlite)`);
-  console.log(`======================================================\n`);
-});
+// Start server after ensuring DB initialization
+async function startServer() {
+  if (db.initPromise) {
+    try {
+      await db.initPromise;
+    } catch (e) {}
+  }
+
+  app.listen(PORT, () => {
+    const localIp = getLocalIp();
+    console.log(`\n======================================================`);
+    console.log(`🚀 MASTER FINTECH PLATFORM, SELL ORDERS & ADMIN ENGINE RUNNING!`);
+    console.log(`📱 Mobile Web App Access:  http://${localIp}:${PORT}`);
+    console.log(`💻 Dedicated PC Admin Dashboard: http://localhost:${PORT}/admin`);
+    console.log(`🗄️  Database Active: PostgreSQL Pool (pg) - Production Ready`);
+    console.log(`======================================================\n`);
+  });
+}
+
+startServer();

@@ -1,0 +1,16 @@
+{
+  "name": "roter-control-hub",
+  "version": "1.0.0",
+  "description": "Full-Stack Node.js Express Control Hub & Analytics Dashboard",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "pg": "^8.13.1"
+  }
+}
