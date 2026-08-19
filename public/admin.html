@@ -154,48 +154,432 @@
       .content-body { padding: 1.25rem; }
     }
 
-    /* LIVE SUPPORT MESSENGER RESPONSIVE STYLES */
-    .chat-threads-pane { transition: all 0.2s ease; }
-    .chat-messages-pane { transition: all 0.2s ease; }
-    .chat-thread-item {
-      padding: 12px 14px;
+    /* =============================================
+       WHATSAPP-STYLE LIVE SUPPORT MESSENGER
+    ============================================= */
+    .wa-messenger-shell {
+      display: flex;
+      height: calc(100vh - 140px);
+      min-height: 560px;
+      border: 1.5px solid var(--orange-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+      background: #f0f2f5;
+    }
+
+    /* LEFT PANE */
+    .wa-threads-pane {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border-right: 1px solid #e8eaed;
+    }
+    .wa-threads-header {
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .wa-threads-header h3 {
+      color: #ffffff;
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wa-search-bar {
+      padding: 8px 14px;
+      background: #f5f6f7;
+      border-bottom: 1px solid #e8eaed;
+      flex-shrink: 0;
+    }
+    .wa-search-bar input {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      padding: 8px 16px 8px 36px;
+      font-size: 0.84rem;
+      outline: none;
+      color: #1e293b;
+      box-sizing: border-box;
+    }
+    .wa-search-wrap {
+      position: relative;
+    }
+    .wa-search-wrap i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+    .wa-threads-list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .wa-thread-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 12px;
+      cursor: pointer;
       border-bottom: 1px solid #f1f5f9;
+      transition: background 0.12s ease;
+    }
+    .wa-thread-item:hover { background: #fff8f3; }
+    .wa-thread-item.active { background: #fff1e6; border-left: 3px solid var(--primary-orange); }
+    .wa-thread-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .wa-thread-info { flex: 1; min-width: 0; }
+    .wa-thread-name {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wa-thread-last {
+      font-size: 0.78rem;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .wa-thread-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .wa-thread-time {
+      font-size: 0.68rem;
+      color: #94a3b8;
+    }
+    .wa-unread-badge {
+      background: #ff6600;
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* RIGHT PANE - CHAT WINDOW */
+    .wa-chat-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: #fffaf6;
+    }
+    .wa-chat-header {
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      min-height: 60px;
+    }
+    .wa-chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .wa-chat-back-btn {
+      display: none;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .wa-chat-user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1rem;
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+    .wa-chat-user-info strong {
+      color: #ffffff;
+      font-size: 0.95rem;
+      display: block;
+    }
+    .wa-chat-user-info span {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.85);
+    }
+    .wa-chat-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .wa-chat-action-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
-      transition: background 0.15s ease;
+      justify-content: center;
+      font-size: 0.85rem;
+      transition: background 0.15s;
     }
-    .chat-thread-item:hover { background: #fff8f3; }
-    .chat-thread-item.active { background: #fff1e6; border-left: 3px solid var(--primary-orange); }
+    .wa-chat-action-btn:hover { background: rgba(255,255,255,0.35); }
 
+    /* WALLPAPER BACKGROUND */
+    .wa-messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      -webkit-overflow-scrolling: touch;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M0 0h60v60H0z' fill='%23fff8f0' /%3E%3Cpath opacity='.04' d='M30 5C16 5 5 16 5 30s11 25 25 25 25-11 25-25S44 5 30 5z' fill='%23ff6600'/%3E%3C/svg%3E");
+    }
+
+    /* EMPTY CHAT STATE */
+    .wa-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #94a3b8;
+      padding: 2rem;
+      text-align: center;
+    }
+    .wa-empty-state i { font-size: 3rem; color: #cbd5e1; }
+    .wa-empty-state strong { font-size: 1rem; color: #475569; }
+    .wa-empty-state p { font-size: 0.82rem; max-width: 260px; }
+
+    /* MESSAGE BUBBLES */
+    .wa-bubble-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .wa-bubble-row.admin { flex-direction: row-reverse; }
+
+    .wa-bubble {
+      max-width: 72%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      position: relative;
+      word-break: break-word;
+    }
+    .wa-bubble.user {
+      background: #ffffff;
+      color: #1e293b;
+      border-radius: 2px 12px 12px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .wa-bubble.admin {
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      color: #ffffff;
+      border-radius: 12px 2px 12px 12px;
+      box-shadow: 0 2px 8px rgba(255,102,0,0.25);
+    }
+    .wa-bubble-meta {
+      font-size: 0.63rem;
+      margin-top: 4px;
+      opacity: 0.72;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+    .wa-bubble.user .wa-bubble-meta { color: #94a3b8; }
+    .wa-bubble.admin .wa-bubble-meta { color: rgba(255,255,255,0.8); }
+    .wa-sender-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ff6600;
+      margin-bottom: 2px;
+    }
+    .wa-avatar-sm {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+    .wa-admin-avatar-sm {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+
+    /* QUICK REPLIES TRAY */
+    .wa-quick-replies {
+      display: none;
+      padding: 6px 12px;
+      background: #f5f6f7;
+      border-top: 1px solid #e8eaed;
+      gap: 6px;
+      overflow-x: auto;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .wa-quick-replies::-webkit-scrollbar { height: 0; }
+    .wa-quick-chip {
+      white-space: nowrap;
+      padding: 5px 12px;
+      border-radius: 16px;
+      border: 1.5px solid var(--orange-border);
+      background: #ffffff;
+      color: #ff6600;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .wa-quick-chip:hover { background: #fff1e6; border-color: #ff6600; }
+
+    /* INPUT BAR */
+    .wa-input-bar {
+      display: none;
+      padding: 8px 12px;
+      background: #f0f2f5;
+      border-top: 1px solid #e8eaed;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .wa-input-field {
+      flex: 1;
+      background: #ffffff;
+      border: none;
+      border-radius: 22px;
+      padding: 11px 18px;
+      font-size: 0.9rem;
+      outline: none;
+      color: #1e293b;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      font-family: inherit;
+    }
+    .wa-send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6600, #ea580c);
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(255,102,0,0.35);
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+    .wa-send-btn:hover { transform: scale(1.08); }
+    .wa-send-btn:active { transform: scale(0.95); }
+
+    /* DATE SEPARATOR */
+    .wa-date-sep {
+      text-align: center;
+      margin: 8px 0;
+    }
+    .wa-date-sep span {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #e8eaed;
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+    }
+
+    /* MOBILE RESPONSIVE */
     @media screen and (max-width: 768px) {
-      .chat-threads-pane { width: 100% !important; }
-      .chat-messages-pane { display: none !important; width: 100% !important; }
-      #adminMessengerContainer.show-chat .chat-threads-pane { display: none !important; }
-      #adminMessengerContainer.show-chat .chat-messages-pane { display: flex !important; }
-      .mobile-thread-back { display: inline-flex !important; }
+      .wa-threads-pane {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100% !important;
+        height: 100%;
+        z-index: 2;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .wa-chat-pane {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        transform: translateX(100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .wa-messenger-shell { position: relative; overflow: hidden; }
+      .wa-messenger-shell.show-chat .wa-threads-pane { transform: translateX(-100%); }
+      .wa-messenger-shell.show-chat .wa-chat-pane { transform: translateX(0); z-index: 3; }
+      .wa-chat-back-btn { display: flex !important; }
     }
 
-    @media screen and (max-width: 640px) {
-      .auth-box { width: 92%; padding: 2rem 1.25rem; }
-      .metrics-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-      .form-grid-2 { grid-template-columns: 1fr; gap: 8px; }
-      .header-title h1 { font-size: 1.15rem; }
-      .status-badge { display: none; }
-      #currentDateDisplay { display: none; }
-      .admin-header { padding: 0.75rem 1rem; }
-      .header-right { gap: 8px; }
-      .content-body { padding: 0.85rem; }
-      .panel-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 1rem; }
-      .panel-header > div { width: 100%; flex-wrap: wrap; }
-      .panel-header input, .panel-header select { width: 100% !important; }
-      .table th, .table td { padding: 10px 12px; font-size: 0.82rem; white-space: nowrap; }
-      .modal-box { width: 94%; max-height: 92vh; border-radius: 12px; }
-      .modal-body { padding: 1rem; }
-      .modal-footer { padding: 0.75rem 1rem; flex-direction: column-reverse; }
-      .modal-footer button { width: 100%; padding: 10px; }
-      .btn { padding: 7px 12px; font-size: 0.8rem; }
+    /* Desktop: hide back btn */
+    @media screen and (min-width: 769px) {
+      .wa-chat-back-btn { display: none !important; }
     }
   </style>
 </head>
@@ -592,90 +976,95 @@
               <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
             </form>
           </div>
-        </div>
-
-        <!-- MODULE: DEDICATED LIVE SUPPORT DESK (REAL-TIME USER <-> ADMIN 2-WAY MESSENGER) -->
+                <!-- MODULE: WHATSAPP-STYLE LIVE SUPPORT DESK -->
         <div id="tab-support" class="tab-view">
-          <div class="card-panel" style="padding: 0; overflow: hidden; border: 1.5px solid var(--orange-border); box-shadow: 0 10px 30px rgba(0,0,0,0.06); height: calc(100vh - 140px); min-height: 580px; display: flex; flex-direction: column;">
-            
-            <div style="display: flex; height: 100%; position: relative;" id="adminMessengerContainer">
-              
-              <!-- LEFT PANE: USER CONVERSATION THREADS -->
-              <div class="chat-threads-pane" id="chatThreadsPane" style="width: 340px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: #ffffff; flex-shrink: 0;">
-                
-                <div style="padding: 14px; border-bottom: 1px solid var(--border-color); background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
-                  <div>
-                    <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
-                      <i class="fa-solid fa-comments text-orange"></i> Support Threads
-                    </h3>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">Real-time live user tickets</span>
-                  </div>
-                  <button class="btn btn-secondary" onclick="AdminPortal.loadSupportThreads()" style="padding: 5px 10px; font-size: 0.75rem;" title="Refresh Threads">
-                    <i class="fa-solid fa-rotate-right"></i>
-                  </button>
-                </div>
+          <div class="wa-messenger-shell" id="adminMessengerContainer">
 
-                <div style="padding: 10px 14px; border-bottom: 1px solid var(--border-color);">
-                  <input type="text" id="searchSupportThreads" class="form-control" placeholder="Search user by name or ID..." style="font-size: 0.82rem; padding: 8px 12px; border-radius: 10px;" oninput="AdminPortal.filterSupportThreads(this.value)">
-                </div>
+            <!-- LEFT: THREADS LIST -->
+            <div class="wa-threads-pane">
 
-                <div id="adminThreadsList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
-                  <!-- Thread items rendered dynamically -->
+              <!-- Header -->
+              <div class="wa-threads-header">
+                <h3><i class="fa-solid fa-headset"></i> Live Support</h3>
+                <button onclick="AdminPortal.loadSupportThreads()" class="wa-chat-action-btn" title="Refresh">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
+
+              <!-- Search -->
+              <div class="wa-search-bar">
+                <div class="wa-search-wrap">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="searchSupportThreads" placeholder="Search by name or User ID..." oninput="AdminPortal.filterSupportThreads(this.value)">
                 </div>
               </div>
 
-              <!-- RIGHT PANE: ACTIVE CONVERSATION STREAM -->
-              <div class="chat-messages-pane" id="chatMessagesPane" style="flex: 1; display: flex; flex-direction: column; background: #fffaf6; min-width: 0;">
-                
-                <!-- Chat Active Header -->
-                <div id="activeThreadHeader" style="padding: 12px 16px; background: #ffffff; border-bottom: 1px solid var(--orange-border); display: flex; align-items: center; justify-content: space-between;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <button class="btn btn-secondary mobile-thread-back" onclick="AdminPortal.backToThreadList()" style="display: none; padding: 6px 10px; border-radius: 8px;">
-                      <i class="fa-solid fa-arrow-left"></i>
-                    </button>
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--orange-light); border: 1.5px solid var(--orange-border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-orange);" id="activeThreadAvatar">
-                      <i class="fa-solid fa-user"></i>
-                    </div>
-                    <div>
-                      <strong style="font-size: 0.95rem; color: #1e293b; display: block;" id="activeThreadUserName">Select a conversation</strong>
-                      <span style="font-size: 0.74rem; color: var(--text-muted);" id="activeThreadUserSub">Choose a user from the left pane to start live messaging</span>
-                    </div>
-                  </div>
-                  <div id="activeThreadActions" style="display: none; align-items: center; gap: 8px;">
-                    <button class="btn btn-secondary" id="btnActiveUserAdjustBal" style="font-size: 0.75rem; padding: 6px 12px;">
-                      <i class="fa-solid fa-wallet text-orange"></i> Adjust Balance
-                    </button>
-                  </div>
+              <!-- Thread List -->
+              <div id="adminThreadsList" class="wa-threads-list">
+                <div class="wa-empty-state">
+                  <i class="fa-solid fa-comments"></i>
+                  <strong>No Conversations Yet</strong>
+                  <p>When users send messages from the app, they appear here in real-time.</p>
                 </div>
-
-                <!-- Messages Stream Area -->
-                <div id="adminChatStream" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-                  <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
-                    <i class="fa-solid fa-headset" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
-                    <strong style="font-size: 1rem; color: #475569;">No Conversation Selected</strong>
-                    <p style="font-size: 0.82rem; margin-top: 4px;">Click on any user from the left list to view their message history and reply live.</p>
-                  </div>
-                </div>
-
-                <!-- Quick Admin Preset Responses -->
-                <div id="adminQuickRepliesBox" style="display: none; padding: 8px 14px; background: #ffffff; border-top: 1px solid #f1f5f9; gap: 6px; overflow-x: auto; flex-shrink: 0; white-space: nowrap;">
-                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Hello! How can I assist you with your ROTERPAY account today?')">👋 Greeting</button>
-                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Your deposit payment has been verified & credited to your balance successfully!')">✅ Deposit Verified</button>
-                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Please provide your 12-digit UTR transaction reference number for verification.')">📋 Request UTR</button>
-                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Your withdrawal order has been approved and processed to your UPI payment tool.')">💸 Withdrawal Processed</button>
-                </div>
-
-                <!-- Admin Reply Form -->
-                <form id="formAdminReply" onsubmit="AdminPortal.handleSendAdminReply(event)" style="padding: 12px 14px; background: #ffffff; border-top: 1px solid var(--orange-border); display: none; align-items: center; gap: 10px; flex-shrink: 0;">
-                  <input type="text" id="adminReplyInput" class="form-control" placeholder="Type your response to the user..." required autocomplete="off" style="padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; flex: 1;">
-                  <button type="submit" class="btn btn-primary" style="padding: 11px 20px; font-size: 0.92rem; font-weight: 800; border-radius: 12px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; background: linear-gradient(135deg, #ff6600, #ea580c); box-shadow: 0 4px 14px rgba(255,102,0,0.3);">
-                    <span>Reply</span> <i class="fa-solid fa-paper-plane"></i>
-                  </button>
-                </form>
-
               </div>
 
             </div>
+
+            <!-- RIGHT: ACTIVE CHAT WINDOW -->
+            <div class="wa-chat-pane">
+
+              <!-- Chat Header -->
+              <div class="wa-chat-header">
+                <div class="wa-chat-header-left">
+                  <!-- Back button (mobile only) -->
+                  <button class="wa-chat-back-btn" onclick="AdminPortal.backToThreadList()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                  </button>
+                  <div class="wa-chat-user-avatar" id="activeThreadAvatar">?</div>
+                  <div class="wa-chat-user-info">
+                    <strong id="activeThreadUserName">Select a Conversation</strong>
+                    <span id="activeThreadUserSub">Choose a user from the left</span>
+                  </div>
+                </div>
+                <div class="wa-chat-actions" id="activeThreadActions" style="display: none;">
+                  <button class="wa-chat-action-btn" id="btnActiveUserAdjustBal" title="Adjust Balance">
+                    <i class="fa-solid fa-wallet"></i>
+                  </button>
+                  <button class="wa-chat-action-btn" onclick="AdminPortal.loadActiveThreadMessages()" title="Refresh">
+                    <i class="fa-solid fa-rotate-right"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Messages Area -->
+              <div id="adminChatStream" class="wa-messages-area">
+                <div class="wa-empty-state">
+                  <i class="fa-solid fa-headset"></i>
+                  <strong>No Conversation Selected</strong>
+                  <p>Click on any user from the left to view messages and reply live.</p>
+                </div>
+              </div>
+
+              <!-- Quick Preset Replies -->
+              <div id="adminQuickRepliesBox" class="wa-quick-replies">
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('Hello! How can I assist you with your ROTERPAY account today? 😊')">👋 Greeting</button>
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('Your deposit payment has been verified and credited to your account balance successfully! ✅')">✅ Deposit OK</button>
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('Please provide your 12-digit UTR transaction reference number for verification. 📋')">📋 Request UTR</button>
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('Your withdrawal order has been approved and processed to your registered UPI payment tool. 💸')">💸 Withdrawal Done</button>
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('We will process your request within 5-10 minutes. Please be patient. ⏳')">⏳ Wait 5-10 min</button>
+                <button type="button" class="wa-quick-chip" onclick="AdminPortal.sendQuickReply('Thank you for contacting ROTERPAY Support! Have a great day! 🙏')">🙏 Thank You</button>
+              </div>
+
+              <!-- Input Bar -->
+              <form id="formAdminReply" class="wa-input-bar" onsubmit="AdminPortal.handleSendAdminReply(event)">
+                <input type="text" id="adminReplyInput" class="wa-input-field" placeholder="Type a message..." required autocomplete="off">
+                <button type="submit" class="wa-send-btn">
+                  <i class="fa-solid fa-paper-plane"></i>
+                </button>
+              </form>
+
+            </div>
+
           </div>
         </div>
 
@@ -2101,9 +2490,10 @@
 
         if (threads.length === 0) {
           container.innerHTML = `
-            <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-              <i class="fa-solid fa-inbox" style="font-size: 1.8rem; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>
-              <span style="font-size: 0.84rem;">No support threads found</span>
+            <div class="wa-empty-state">
+              <i class="fa-solid fa-inbox"></i>
+              <strong>No conversations yet</strong>
+              <p>User messages will appear here in real-time.</p>
             </div>
           `;
           return;
@@ -2118,21 +2508,15 @@
           const timeStr = t.lasttimestamp ? new Date(t.lasttimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
           return `
-            <div class="chat-thread-item ${isActive ? 'active' : ''}" onclick="AdminPortal.selectSupportThread('${userId}', '${userName.replace(/'/g, "\\'")}')">
-              <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--orange-light); border: 1.5px solid var(--orange-border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-orange); flex-shrink: 0;">
-                ${userName.charAt(0).toUpperCase()}
+            <div class="wa-thread-item ${isActive ? 'active' : ''}" onclick="AdminPortal.selectSupportThread('${userId}', '${userName.replace(/'/g, "\\'")}')">
+              <div class="wa-thread-avatar">${userName.charAt(0).toUpperCase()}</div>
+              <div class="wa-thread-info">
+                <div class="wa-thread-name">${userName}</div>
+                <div class="wa-thread-last">${t.lastsender === 'admin' ? '✓ You: ' : ''}${lastMsg}</div>
               </div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-                  <strong style="font-size: 0.88rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${userName}</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted);">${timeStr}</span>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-size: 0.74rem; color: ${unread > 0 ? '#1e293b' : 'var(--text-muted)'}; font-weight: ${unread > 0 ? '700' : '400'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
-                    ${t.lastsender === 'admin' ? '✓ You: ' : ''}${lastMsg}
-                  </span>
-                  ${unread > 0 ? `<span class="badge badge-warning" style="font-size: 0.65rem; padding: 1px 6px; border-radius: 10px;">${unread}</span>` : ''}
-                </div>
+              <div class="wa-thread-meta">
+                <span class="wa-thread-time">${timeStr}</span>
+                ${unread > 0 ? `<span class="wa-unread-badge">${unread}</span>` : ''}
               </div>
             </div>
           `;
@@ -2145,8 +2529,10 @@
 
         document.getElementById('adminMessengerContainer')?.classList.add('show-chat');
 
+        const avatarEl = document.getElementById('activeThreadAvatar');
+        if (avatarEl) avatarEl.textContent = userName.charAt(0).toUpperCase();
         document.getElementById('activeThreadUserName').textContent = userName;
-        document.getElementById('activeThreadUserSub').textContent = `User ID: #${userId} • Live Support Session`;
+        document.getElementById('activeThreadUserSub').textContent = `ID: #${userId} • Live Support`;
         document.getElementById('activeThreadActions').style.display = 'flex';
         document.getElementById('adminQuickRepliesBox').style.display = 'flex';
         document.getElementById('formAdminReply').style.display = 'flex';
@@ -2191,8 +2577,10 @@
 
         if (!msgs || msgs.length === 0) {
           container.innerHTML = `
-            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-              <p style="font-size: 0.85rem;">No previous messages in this conversation. Send a message to start.</p>
+            <div class="wa-empty-state">
+              <i class="fa-solid fa-comments"></i>
+              <strong>No messages yet</strong>
+              <p>Send a message to start the conversation.</p>
             </div>
           `;
           return;
@@ -2203,25 +2591,26 @@
           const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           if (isAdmin) {
             return `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; max-width: 80%; margin-left: auto;">
-                <div style="background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; padding: 10px 14px; border-radius: 14px 14px 2px 14px; font-size: 0.88rem; line-height: 1.45; word-break: break-word; box-shadow: 0 4px 12px rgba(255,102,0,0.22);">
-                  ${m.message}
+              <div class="wa-bubble-row admin">
+                <div class="wa-admin-avatar-sm"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
+                <div>
+                  <div class="wa-bubble admin">
+                    ${m.message}
+                    <div class="wa-bubble-meta">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem;"></i></div>
+                  </div>
                 </div>
-                <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">You (Master Admin) • ${timeStr}</span>
               </div>
             `;
           } else {
             return `
-              <div style="display: flex; gap: 8px; align-items: flex-start; max-width: 80%;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.82rem; flex-shrink: 0;">
-                  ${(m.userName || 'U').charAt(0).toUpperCase()}
-                </div>
+              <div class="wa-bubble-row">
+                <div class="wa-avatar-sm">${(m.userName || 'U').charAt(0).toUpperCase()}</div>
                 <div>
-                  <span style="font-size: 0.72rem; font-weight: 700; color: #334155; margin-bottom: 2px; display: block;">${m.userName || 'App User'} (#${m.userId})</span>
-                  <div style="background: #ffffff; color: #1e293b; padding: 10px 14px; border-radius: 2px 14px 14px 14px; border: 1px solid var(--orange-border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-size: 0.88rem; line-height: 1.45; word-break: break-word;">
+                  <div class="wa-sender-name">${m.userName || 'App User'} <span style="font-size:0.65rem;font-weight:400;color:#94a3b8;">#${m.userId}</span></div>
+                  <div class="wa-bubble user">
                     ${m.message}
+                    <div class="wa-bubble-meta">${timeStr}</div>
                   </div>
-                  <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr}</span>
                 </div>
               </div>
             `;
