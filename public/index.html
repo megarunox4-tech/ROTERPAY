@@ -344,20 +344,20 @@
             </div>
           </div>
 
-          <!-- App Download Quick Banner (Orange Theme with Official ROTERPAY Logo) -->
-          <div class="app-download-banner-card" onclick="FintechApp.openDownloadAppModal()" style="cursor: pointer; background: linear-gradient(135deg, #ff6600, #ff8800); border-radius: 18px; padding: 14px 16px; color: #ffffff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; box-shadow: var(--shadow-orange); border: 1.5px solid rgba(255, 255, 255, 0.2); transition: transform 0.2s ease;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" style="width: 48px; height: 48px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); object-fit: cover; border: 2px solid #ffe3d1; flex-shrink: 0;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <strong style="font-size: 0.98rem; font-family: var(--font-heading); font-weight: 900; letter-spacing: 0.3px;">ROTERPAY</strong>
-                  <span style="background: rgba(255, 255, 255, 0.25); font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 8px;">OFFICIAL APP</span>
+          <!-- App Download Quick Banner (100% Responsive for All Devices) -->
+          <div class="app-download-banner-card" onclick="FintechApp.openDownloadAppModal()">
+            <div class="app-dl-left">
+              <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" class="app-dl-logo">
+              <div class="app-dl-info">
+                <div class="app-dl-title-row">
+                  <strong class="app-dl-title">ROTERPAY</strong>
+                  <span class="app-dl-badge">OFFICIAL APP</span>
                 </div>
-                <span style="font-size: 0.76rem; opacity: 0.95; font-weight: 600; display: block; margin-top: 1px;"><i class="fa-brands fa-android"></i> Android APK v1.1.9 • 8.4 MB</span>
+                <span class="app-dl-sub"><i class="fa-brands fa-android"></i> Android APK • 1-Tap Fast Install</span>
               </div>
             </div>
-            <button type="button" class="btn-download-pill" style="background: #ffffff; color: var(--primary-orange); font-weight: 800; font-size: 0.82rem; padding: 7px 15px; border-radius: 20px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
-              <i class="fa-solid fa-download"></i> Get APK
+            <button type="button" class="btn-download-pill">
+              <i class="fa-solid fa-download"></i> Get App
             </button>
           </div>
 
@@ -1763,52 +1763,52 @@
     </div>
   </div>
 
-  <!-- APP DOWNLOAD MODAL DIALOG (ORANGE THEME WITH OFFICIAL ROTERPAY LOGO) -->
+  <!-- APP DOWNLOAD MODAL DIALOG (100% RESPONSIVE FOR ALL DEVICES) -->
   <div class="modal-backdrop" id="modalDownloadApp">
-    <div class="modal" style="max-width: 420px; border-radius: 24px; overflow: hidden; border: 2px solid var(--orange-border); box-shadow: 0 20px 50px rgba(255, 102, 0, 0.2);">
-      <div style="background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; padding: 1.6rem 1.25rem 1.4rem; text-align: center; position: relative;">
-        <button class="modal-close" data-close="modalDownloadApp" style="position: absolute; right: 14px; top: 12px; color: #ffffff; background: rgba(0,0,0,0.2); width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+    <div class="modal">
+      <div class="modal-header-banner">
+        <button class="modal-close" data-close="modalDownloadApp" style="position: absolute; right: 12px; top: 10px; color: #ffffff; background: rgba(0,0,0,0.25); width: 30px; height: 30px; border-radius: 50%; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
         
         <!-- Official ROTERPAY Brand Logo -->
-        <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" style="width: 82px; height: 82px; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); object-fit: cover; border: 2.5px solid #ffe3d1; margin-bottom: 8px; display: inline-block;">
+        <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo">
         
-        <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; margin: 0; letter-spacing: 0.3px;">ROTERPAY</h3>
-        <p style="font-size: 0.82rem; opacity: 0.95; margin-top: 4px;">Official Mobile App • Version <span id="mdlAppVersion" style="font-weight:800; background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:6px;">v1.1.9</span></p>
+        <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 900; margin: 0; letter-spacing: 0.3px;">ROTERPAY</h3>
+        <p style="font-size: 0.8rem; opacity: 0.95; margin-top: 4px;">Official Mobile App • <span id="mdlAppVersion" style="font-weight:800; background:rgba(255,255,255,0.25); padding:1px 6px; border-radius:6px;">v1.1.9</span></p>
       </div>
 
-      <div class="modal-body" style="padding: 1.5rem 1.25rem; text-align: center; background: #ffffff;">
+      <div class="modal-body" style="padding: 1.25rem 1rem; text-align: center; background: #ffffff;">
         
-        <!-- App Benefits Pill Row (Orange Palette) -->
-        <div style="display: flex; justify-content: space-around; background: var(--orange-light); border: 1px solid var(--orange-border); border-radius: 14px; padding: 10px; margin-bottom: 1.25rem;">
-          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
+        <!-- App Benefits Pill Row -->
+        <div class="app-benefits-row">
+          <div class="app-benefit-chip">
             <i class="fa-solid fa-shield-halved"></i> 100% Secure
           </div>
-          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
+          <div class="app-benefit-chip">
             <i class="fa-solid fa-bolt"></i> Instant P2P
           </div>
-          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
-            <i class="fa-brands fa-android"></i> 8.4 MB APK
+          <div class="app-benefit-chip">
+            <i class="fa-brands fa-android"></i> Fast APK
           </div>
         </div>
 
-        <!-- Option 1: 1-Tap Instant Mobile App Install (PWA Native - No Parsing Errors) -->
-        <button type="button" id="btnPwaInstallApp" onclick="FintechApp.installPwaApp()" class="btn-orange-deposit-large" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; text-decoration: none; border-radius: 30px; padding: 14px 20px; font-size: 1.05rem; font-weight: 800; box-shadow: var(--shadow-orange); margin-bottom: 0.75rem; width: 100%; border: none; cursor: pointer;">
-          <i class="fa-solid fa-mobile-screen-button" style="font-size: 1.2rem;"></i> ⚡ Install App (Instant 1-Tap)
+        <!-- Option 1: 1-Tap Instant Mobile App Install -->
+        <button type="button" id="btnPwaInstallApp" onclick="FintechApp.installPwaApp()" class="btn-orange-deposit-large" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; text-decoration: none; border-radius: 30px; padding: 13px 16px; font-size: 1rem; font-weight: 800; box-shadow: var(--shadow-orange); margin-bottom: 0.75rem; width: 100%; border: none; cursor: pointer;">
+          <i class="fa-solid fa-mobile-screen-button" style="font-size: 1.15rem;"></i> ⚡ Install App (Instant 1-Tap)
         </button>
 
         <!-- Option 2: Download APK File (Direct) -->
-        <a id="btnDirectDownloadApk" href="/downloads/fintech-hub.apk" download="fintech-hub.apk" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 24px; padding: 10px; font-size: 0.88rem; font-weight: 700; color: var(--text-medium); text-decoration: none; margin-bottom: 1rem; border: 1px solid var(--orange-border); background: var(--orange-light);">
-          <i class="fa-brands fa-android text-orange"></i> Download APK Package File
+        <a id="btnDirectDownloadApk" href="/downloads/fintech-hub.apk" download="fintech-hub.apk" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 24px; padding: 10px; font-size: 0.86rem; font-weight: 700; color: var(--text-medium); text-decoration: none; margin-bottom: 0.85rem; border: 1px solid var(--orange-border); background: var(--orange-light);">
+          <i class="fa-brands fa-android text-orange"></i> Download Direct APK File
         </a>
 
         <!-- Web App / iOS & Android Quick Guide -->
-        <div style="background: var(--bg-page); border: 1px solid var(--orange-border); border-radius: 14px; padding: 12px 14px; font-size: 0.78rem; color: var(--text-medium); line-height: 1.45; text-align: left; margin-bottom: 1rem;">
+        <div style="background: var(--bg-page); border: 1px solid var(--orange-border); border-radius: 12px; padding: 10px 12px; font-size: 0.75rem; color: var(--text-medium); line-height: 1.4; text-align: left; margin-bottom: 0.85rem;">
           <strong style="color:var(--primary-orange); display:block; margin-bottom:3px;"><i class="fa-solid fa-circle-info"></i> How to Install on Mobile:</strong>
-          • <strong>Chrome / Android:</strong> Tap <strong>"Install App (Instant 1-Tap)"</strong> or browser menu (⋮) ➔ <strong>"Install app / Add to Home screen"</strong>.<br>
-          • <strong>iPhone (Safari):</strong> Tap Share <i class="fa-solid fa-arrow-up-from-bracket"></i> ➔ <strong>"Add to Home Screen"</strong>.
+          • <strong>Android:</strong> Tap <strong>"Install App (Instant 1-Tap)"</strong> or Menu (⋮) ➔ <strong>"Install app"</strong>.<br>
+          • <strong>iPhone:</strong> Tap Share <i class="fa-solid fa-arrow-up-from-bracket"></i> ➔ <strong>"Add to Home Screen"</strong>.
         </div>
 
-        <button type="button" class="btn btn-secondary width-100" data-close="modalDownloadApp" style="border-radius: 20px; padding: 10px; font-weight: 700;">Close</button>
+        <button type="button" class="btn btn-secondary width-100" data-close="modalDownloadApp" style="border-radius: 20px; padding: 9px; font-weight: 700;">Close</button>
       </div>
     </div>
   </div>
