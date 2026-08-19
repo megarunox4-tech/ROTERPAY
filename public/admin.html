@@ -2784,6 +2784,7 @@
 
         html += msgs.map(m => {
           const isAdmin = m.sender === 'admin';
+          const isSeen = m.isRead === 1 || m.isRead === true || m.isRead === '1';
           const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
           
@@ -2795,7 +2796,7 @@
                   <div class="wa-bubble admin">
                     <div>${m.message}</div>
                     <div class="wa-bubble-meta">
-                      ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem;"></i>
+                      ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem; color: ${isSeen ? '#bbf7d0' : 'rgba(255,255,255,0.65)'};" title="${isSeen ? 'Read by user' : 'Delivered'}"></i>
                       <div class="wa-bubble-actions">
                         <button type="button" class="wa-msg-btn" onclick="AdminPortal.editMessage(${m.id}, '${escapedText}')" title="Edit Message"><i class="fa-solid fa-pen"></i></button>
                         <button type="button" class="wa-msg-btn del" onclick="AdminPortal.deleteMessage(${m.id})" title="Delete Message"><i class="fa-solid fa-trash-can"></i></button>

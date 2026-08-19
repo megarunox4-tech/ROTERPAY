@@ -1557,6 +1557,7 @@ app.get('/api/admin/logs', requireAdminAuth, async (req, res) => {
 
 // Real-time Chat Presence & Typing Tracker
 const chatPresence = {};
+let adminGlobalLastSeen = 0;
 
 function getOrCreatePresence(userId) {
   if (!userId) return null;
@@ -1579,6 +1580,7 @@ app.post('/api/support/typing', (req, res) => {
   const p = getOrCreatePresence(userId);
   const now = Date.now();
   if (sender === 'admin') {
+    adminGlobalLastSeen = now;
     p.adminLastSeen = now;
     p.adminTypingUntil = isTyping ? now + 3500 : 0;
   } else {
@@ -1594,14 +1596,15 @@ app.get('/api/support/presence', (req, res) => {
   if (!userId) return res.status(400).json({ error: 'userId is required' });
   const p = getOrCreatePresence(userId);
   const now = Date.now();
+  const isAdminOnline = (now - adminGlobalLastSeen) < 10000;
   res.json({
     userId,
     isUserOnline: (now - p.userLastSeen) < 15000,
     isUserTyping: now < p.userTypingUntil,
-    isAdminOnline: true,
+    isAdminOnline: isAdminOnline,
     isAdminTyping: now < p.adminTypingUntil,
     userLastSeen: p.userLastSeen,
-    adminLastSeen: p.adminLastSeen
+    adminLastSeen: adminGlobalLastSeen
   });
 });
 
@@ -1687,6 +1690,7 @@ app.post('/api/admin/support/reply', requireAdminAuth, async (req, res) => {
 // Admin: Fetch all active user support chat threads
 app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
   try {
+    adminGlobalLastSeen = Date.now();
     const rawThreads = await db.queryAll(`
       SELECT 
         sm.userid,

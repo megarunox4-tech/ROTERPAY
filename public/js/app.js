@@ -1081,11 +1081,13 @@ const FintechApp = {
         this.renderUserChatMessages(msgs, isAdminTyping);
       }
 
-      await fetch('/api/support/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, reader: 'user' })
-      }).catch(() => {});
+      if (document.getElementById('tab-support')?.classList.contains('active')) {
+        await fetch('/api/support/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, reader: 'user' })
+        }).catch(() => {});
+      }
     } catch (e) {
       console.warn('Support messages fetch error:', e);
     }
@@ -1117,6 +1119,7 @@ const FintechApp = {
     } else {
       html += msgs.map(m => {
         const isAdmin = m.sender === 'admin';
+        const isSeen = m.isRead === 1 || m.isRead === true || m.isRead === '1';
         const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
@@ -1136,7 +1139,7 @@ const FintechApp = {
               <div class="uc-bubble user">
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">
-                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.65rem; color:#53bdeb;"></i>
+                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.65rem; color:${isSeen ? '#53bdeb' : '#8696a0'};" title="${isSeen ? 'Read' : 'Delivered'}"></i>
                   <div class="uc-bubble-actions">
                     <button type="button" class="uc-msg-btn" onclick="FintechApp.editUserMessage(${m.id}, '${escapedText}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" class="uc-msg-btn del" onclick="FintechApp.deleteUserMessage(${m.id})" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
