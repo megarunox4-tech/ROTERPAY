@@ -1268,28 +1268,32 @@ const FintechApp = {
   },
 
   async loadStats() {
-    const res = await fetch('/api/stats');
-    const stats = await res.json();
-    this.state.stats = stats;
+    try {
+      const res = await fetch('/api/stats');
+      const stats = await res.json();
+      this.state.stats = stats || {};
 
-    document.getElementById('quickUsdtRate').textContent = `${stats.exchangeRate}INR`;
-    document.getElementById('scoreRateBadge').textContent = `100 Score = ₹ ${stats.scoreRate || 10} INR`;
-    document.getElementById('statExchangeRate').textContent = stats.exchangeRate;
-    document.getElementById('statInProcessAmt').textContent = stats.inProcessAmount.toFixed(2);
-    document.getElementById('statInProcessOrders').textContent = stats.inProcessOrders;
-    document.getElementById('statCommissionRate').textContent = stats.commissionRate.toFixed(2);
-    document.getElementById('statEstIncome').textContent = stats.estimatedIncome.toFixed(2);
-    document.getElementById('appVersionDisplay').textContent = stats.appVersion || 'v1.1.9';
+      if (document.getElementById('quickUsdtRate')) document.getElementById('quickUsdtRate').textContent = `${stats.exchangeRate || 110}INR`;
+      if (document.getElementById('scoreRateBadge')) document.getElementById('scoreRateBadge').textContent = `100 Score = ₹ ${stats.scoreRate || 10} INR`;
+      if (document.getElementById('statExchangeRate')) document.getElementById('statExchangeRate').textContent = stats.exchangeRate || 110;
+      if (document.getElementById('statInProcessAmt')) document.getElementById('statInProcessAmt').textContent = Number(stats.inProcessAmount || 0).toFixed(2);
+      if (document.getElementById('statInProcessOrders')) document.getElementById('statInProcessOrders').textContent = stats.inProcessOrders || 0;
+      if (document.getElementById('statCommissionRate')) document.getElementById('statCommissionRate').textContent = Number(stats.commissionRate || 4).toFixed(2);
+      if (document.getElementById('statEstIncome')) document.getElementById('statEstIncome').textContent = Number(stats.estimatedIncome || 0).toFixed(2);
+      if (document.getElementById('appVersionDisplay')) document.getElementById('appVersionDisplay').textContent = stats.appVersion || 'v1.1.9';
 
-    const btnSell = document.getElementById('btnToggleSelling');
-    if (btnSell) {
-      if (stats.isSellingOpen) {
-        btnSell.textContent = 'Selling Active (Open)';
-        btnSell.style.background = '#ff6600';
-      } else {
-        btnSell.textContent = 'Closed Selling';
-        btnSell.style.background = '#f59e0b';
+      const btnSell = document.getElementById('btnToggleSelling');
+      if (btnSell) {
+        if (stats.isSellingOpen) {
+          btnSell.textContent = 'Selling Active (Open)';
+          btnSell.style.background = '#ff6600';
+        } else {
+          btnSell.textContent = 'Closed Selling';
+          btnSell.style.background = '#f59e0b';
+        }
       }
+    } catch (e) {
+      console.warn('loadStats caught error:', e);
     }
   },
 

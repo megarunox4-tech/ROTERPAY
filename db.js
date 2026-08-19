@@ -62,6 +62,10 @@ const db = {
       const res = await pool.query(formattedSql, params);
       return res.rows || [];
     } catch (err) {
+      if (err.code === 'ECONNREFUSED' || !databaseUrl) {
+        console.warn('⚠️ Local DB Query Warning:', err.message);
+        return [];
+      }
       console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
       throw err;
     }
@@ -75,6 +79,10 @@ const db = {
       const res = await pool.query(formattedSql, params);
       return res.rows[0] || null;
     } catch (err) {
+      if (err.code === 'ECONNREFUSED' || !databaseUrl) {
+        console.warn('⚠️ Local DB Query Warning:', err.message);
+        return null;
+      }
       console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
       throw err;
     }
@@ -92,6 +100,10 @@ const db = {
         rows: res.rows
       };
     } catch (err) {
+      if (err.code === 'ECONNREFUSED' || !databaseUrl) {
+        console.warn('⚠️ Local DB Run Warning:', err.message);
+        return { rowCount: 0, changes: 0, rows: [] };
+      }
       console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
       throw err;
     }

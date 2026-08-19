@@ -145,23 +145,23 @@ function getLocalIp() {
 
 // Helper to format stats from SQL row to JSON
 function formatStats(row) {
-  if (!row) return {};
+  const r = row || {};
   return {
-    exchangeRate: row.exchangeRate,
-    scoreRate: row.scoreRate,
-    inProcessAmount: row.inProcessAmount,
-    inProcessOrders: row.inProcessOrders,
-    commissionRate: row.commissionRate,
-    estimatedIncome: row.estimatedIncome,
-    isSellingOpen: Boolean(row.isSellingOpen),
-    specialRewardActive: Boolean(row.specialRewardActive),
-    maintenanceMode: Boolean(row.maintenanceMode),
-    adminUpiId: row.adminUpiId,
-    merchantName: row.merchantName,
-    adminQrText: row.adminQrText,
-    appVersion: row.appVersion,
-    appDownloadUrl: row.appDownloadUrl || '/downloads/fintech-hub.apk',
-    date: row.date
+    exchangeRate: Number(r.exchangerate ?? r.exchangeRate ?? 110.0),
+    scoreRate: Number(r.scorerate ?? r.scoreRate ?? 10.0),
+    inProcessAmount: Number(r.inprocessamount ?? r.inProcessAmount ?? 0.0),
+    inProcessOrders: Number(r.inprocessorders ?? r.inProcessOrders ?? 0),
+    commissionRate: Number(r.commissionrate ?? r.commissionRate ?? 4.0),
+    estimatedIncome: Number(r.estimatedincome ?? r.estimatedIncome ?? 0.0),
+    isSellingOpen: Boolean(r.issellingopen ?? r.isSellingOpen ?? 0),
+    specialRewardActive: Boolean(r.specialrewardactive ?? r.specialRewardActive ?? 1),
+    maintenanceMode: Boolean(r.maintenancemode ?? r.maintenanceMode ?? 0),
+    adminUpiId: r.adminupiid || r.adminUpiId || '8104229900@upi',
+    merchantName: r.merchantname || r.merchantName || 'Fintech Hub',
+    adminQrText: r.adminqrtext || r.adminQrText || 'upi://pay?pa=8104229900@upi&pn=Fintech%20Hub&cu=INR',
+    appVersion: r.appversion || r.appVersion || 'v1.1.9',
+    appDownloadUrl: r.appdownloadurl || r.appDownloadUrl || '/downloads/fintech-hub.apk',
+    date: r.date || new Date().toLocaleDateString('en-GB')
   };
 }
 
@@ -617,12 +617,13 @@ app.post('/api/user/withdraw', async (req, res) => {
 });
 
 // Stats & Selling State
+// Stats & Selling State
 app.get('/api/stats', async (req, res) => {
   try {
     const row = await db.queryOne(`SELECT * FROM stats_data WHERE id = 1`);
     res.json(formatStats(row));
   } catch (err) {
-    res.status(500).json({ error: 'Database stats error' });
+    res.json(formatStats(null));
   }
 });
 
