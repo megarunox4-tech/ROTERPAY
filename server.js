@@ -957,6 +957,26 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// Protected Admin Self Profile Endpoint
+app.get('/api/admin/me', requireAdminAuth, async (req, res) => {
+  try {
+    const admin = await db.queryOne(`SELECT id, username, role, status, created_at FROM admins WHERE id = $1 LIMIT 1`, [req.admin.adminId]);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin account not found' });
+    }
+    res.json({
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
+      status: admin.status,
+      createdAt: admin.created_at || admin.createdAt
+    });
+  } catch (err) {
+    console.error('Error fetching admin me:', err.message);
+    res.status(500).json({ error: 'Database error fetching admin profile' });
+  }
+});
+
 // Protected Admin Overview
 app.get('/api/admin/overview', requireAdminAuth, async (req, res) => {
   try {

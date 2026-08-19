@@ -145,9 +145,9 @@ async function initializeTables() {
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        role TEXT DEFAULT 'admin',
-        status TEXT DEFAULT 'ACTIVE',
-        created_at TIMESTAMPTZ DEFAULT NOW()
+        role TEXT NOT NULL DEFAULT 'admin',
+        status TEXT NOT NULL DEFAULT 'ACTIVE',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
@@ -323,23 +323,24 @@ async function initializeTables() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sell_orders_user ON sell_orders(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);`);
 
-    // Seed initial admin account ONLY if admins table is empty AND ADMIN_USERNAME / ADMIN_PASSCODE are provided
+    // Seed initial admin account ONLY if admins table has 0 records and credentials are configured
     const adminCheck = await pool.query(`SELECT COUNT(*) as count FROM admins`);
     const adminCount = Number(adminCheck.rows[0]?.count || 0);
-    if (adminCount === 0 && process.env.ADMIN_USERNAME && process.env.ADMIN_PASSCODE) {
-      const initialUsername = String(process.env.ADMIN_USERNAME).trim();
+    if (adminCount === 0 && process.env.ADMIN_PASSCODE) {
+      const initialUsername = String(process.env.ADMIN_USERNAME || 'admin').trim();
       const initialPasscode = String(process.env.ADMIN_PASSCODE).trim();
       const initialHash = await bcrypt.hash(initialPasscode, 10);
       await pool.query(
         `INSERT INTO admins (username, password_hash, role, status) VALUES ($1, $2, 'admin', 'ACTIVE') ON CONFLICT (username) DO NOTHING;`,
         [initialUsername, initialHash]
       );
-      console.log(`🔐 Initial PostgreSQL Admin account created from environment configuration.`);
-    } else if (adminCount === 0) {
-      console.log(`ℹ️ PostgreSQL admins table is empty. Please set ADMIN_USERNAME and ADMIN_PASSCODE to seed initial administrator.`);
-    } else {
-      console.log(`🔐 PostgreSQL admins table active (${adminCount} admin account(s) registered).`);
+      console.log(`🔐 Initial PostgreSQL Admin created: ${initialUsername}`);
     }
+
+    // Safe startup reporting for admin records count
+    const finalAdminCheck = await pool.query(`SELECT COUNT(*) as count FROM admins`);
+    const finalCount = Number(finalAdminCheck.rows[0]?.count || 0);
+    console.log(`Admin records: ${finalCount}`);
 
     // Seed default stats if not existing
     await pool.query(`
