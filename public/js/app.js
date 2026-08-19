@@ -1298,42 +1298,72 @@ const FintechApp = {
   },
 
   async loadOffers() {
-    const userId = this.state.currentUser ? this.state.currentUser.id : '';
-    const res = await fetch(`/api/payment/offers?userId=${userId}`);
-    const offers = await res.json();
-    this.state.offers = offers;
+    try {
+      const userId = this.state.currentUser ? this.state.currentUser.id : '';
+      const res = await fetch(`/api/payment/offers?userId=${userId}`);
+      if (res.ok) {
+        const offers = await res.json();
+        this.state.offers = Array.isArray(offers) ? offers : [];
+      } else {
+        this.state.offers = [];
+      }
+    } catch (e) {
+      this.state.offers = [];
+    }
     this.renderOffers();
   },
 
   async loadWallets() {
-    const res = await fetch('/api/wallets');
-    const wallets = await res.json();
-    this.state.wallets = wallets;
+    try {
+      const res = await fetch('/api/wallets');
+      if (res.ok) {
+        const wallets = await res.json();
+        this.state.wallets = Array.isArray(wallets) ? wallets : [];
+      } else {
+        this.state.wallets = [];
+      }
+    } catch (e) {
+      this.state.wallets = [];
+    }
     this.renderWallets();
   },
 
   async loadTasks() {
-    const res = await fetch('/api/tasks');
-    const tasks = await res.json();
-    this.state.tasks = tasks;
+    try {
+      const res = await fetch('/api/tasks');
+      if (res.ok) {
+        const tasks = await res.json();
+        this.state.tasks = Array.isArray(tasks) ? tasks : [];
+      } else {
+        this.state.tasks = [];
+      }
+    } catch (e) {
+      this.state.tasks = [];
+    }
     this.renderTasks();
   },
 
   // NOTIFICATIONS CONTROLLER
   async loadNotifications() {
-    const res = await fetch('/api/notifications');
-    const data = await res.json();
-    this.state.notifications = data.notifications;
-    this.state.unreadCount = data.unreadCount;
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        this.state.notifications = data.notifications || [];
+        this.state.unreadCount = data.unreadCount || 0;
 
-    const badge = document.getElementById('bellUnreadBadge');
-    if (badge) {
-      if (data.unreadCount > 0) {
-        badge.style.display = 'inline-block';
-        badge.textContent = data.unreadCount;
-      } else {
-        badge.style.display = 'none';
+        const badge = document.getElementById('bellUnreadBadge');
+        if (badge) {
+          if (this.state.unreadCount > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = this.state.unreadCount;
+          } else {
+            badge.style.display = 'none';
+          }
+        }
       }
+    } catch (e) {
+      this.state.notifications = [];
     }
 
     this.renderNotifications();

@@ -1661,7 +1661,22 @@ app.post('/api/support/mark-read', async (req, res) => {
   }
 });
 
-// SPA Catch-all Route
+// Tasks API Endpoint
+app.get('/api/tasks', (req, res) => {
+  res.json([
+    { id: 1, title: 'Bind UPI Payment Tool', reward: '+49 Points', status: 'NEW' },
+    { id: 2, title: 'Complete First Deposit Order', reward: '+178 Points', status: 'HOT' },
+    { id: 3, title: 'Invite 3 Active Friends', reward: '+120 Points', status: 'BONUS' },
+    { id: 4, title: 'Daily App Check-in & Login', reward: '+25 Points', status: 'DAILY' }
+  ]);
+});
+
+// JSON 404 Handler for undefined API routes (Prevents HTML response on API calls)
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: `API route ${req.method} ${req.originalUrl} not found` });
+});
+
+// SPA Catch-all Route for Web App Pages
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
