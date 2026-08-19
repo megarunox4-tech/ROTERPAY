@@ -2202,3 +2202,39 @@ const FintechApp = {
     return false;
   }
 };
+
+// Keyboard Open & Viewport Lock Handler (Prevents Chat Header from shifting)
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    if (document.getElementById('tab-support')?.classList.contains('active')) {
+      const container = document.querySelector('#tab-support .user-chat-container');
+      if (container) {
+        container.style.height = `${window.visualViewport.height}px`;
+      }
+      window.scrollTo(0, 0);
+      const stream = document.getElementById('userChatStream');
+      if (stream) stream.scrollTop = stream.scrollHeight;
+    }
+  });
+
+  window.visualViewport.addEventListener('scroll', () => {
+    if (document.getElementById('tab-support')?.classList.contains('active')) {
+      window.scrollTo(0, 0);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const chatInput = document.getElementById('inputUserChatMsg');
+  if (chatInput) {
+    chatInput.addEventListener('focus', () => {
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        const stream = document.getElementById('userChatStream');
+        if (stream) stream.scrollTop = stream.scrollHeight;
+      }, 120);
+    });
+  }
+});
