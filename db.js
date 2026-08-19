@@ -1,74 +1,149 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+try { require('dotenv').config(); } catch (e) {}
+const { Pool } = require('pg');
 
-const DB_PATH = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(DB_PATH);
+// Determine connection configuration
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/roterpay';
+const isProduction = process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') && !process.env.DATABASE_URL.includes('127.0.0.1'));
 
-// Promisified SQL query helper methods
-const sqlDb = {
-  run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      db.run(sql, params, function (err) {
-        if (err) return reject(err);
-        resolve({ lastID: this.lastID, changes: this.changes });
-      });
-    });
+const poolConfig = {
+  connectionString,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+};
+
+// Enable SSL for remote cloud databases (Render, Supabase, Neon, AWS RDS, etc.)
+if (isProduction || (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('render.com') || process.env.DATABASE_URL.includes('supabase') || process.env.DATABASE_URL.includes('neon') || process.env.DATABASE_URL.includes('sslmode=require')))) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false
+  };
+}
+
+const pool = new Pool(poolConfig);
+
+// Suppress unexpected pool client errors
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle PostgreSQL client:', err.message);
+});
+
+// Automatic placeholder converter: replaces ? with $1, $2, $3...
+function convertPlaceholders(sql) {
+  if (!sql || typeof sql !== 'string') return sql;
+  let paramIndex = 1;
+  return sql.replace(/\?/g, () => `$${paramIndex++}`);
+}
+
+// PostgreSQL Database Wrapper & Helper Interface
+const db = {
+  pool,
+
+  // Execute a query and return all matching rows
+  async queryAll(sql, params = []) {
+    try {
+      const formattedSql = convertPlaceholders(sql);
+      const res = await pool.query(formattedSql, params);
+      return res.rows || [];
+    } catch (err) {
+      console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
+      throw err;
+    }
   },
 
-  queryAll(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      db.all(sql, params, (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows || []);
-      });
-    });
+  // Execute a query and return a single row (or null)
+  async queryOne(sql, params = []) {
+    try {
+      const formattedSql = convertPlaceholders(sql);
+      const res = await pool.query(formattedSql, params);
+      return res.rows[0] || null;
+    } catch (err) {
+      console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
+      throw err;
+    }
   },
 
-  queryOne(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      db.get(sql, params, (err, row) => {
-        if (err) return reject(err);
-        resolve(row || null);
-      });
-    });
+  // Execute an INSERT/UPDATE/DELETE query
+  async run(sql, params = []) {
+    try {
+      const formattedSql = convertPlaceholders(sql);
+      const res = await pool.query(formattedSql, params);
+      return {
+        rowCount: res.rowCount,
+        changes: res.rowCount,
+        rows: res.rows
+      };
+    } catch (err) {
+      console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
+      throw err;
+    }
+  },
+
+  // Execute multiple operations within an atomic PostgreSQL transaction
+  async tx(callback) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const txHelper = {
+        queryAll: async (sql, params = []) => {
+          const res = await client.query(convertPlaceholders(sql), params);
+          return res.rows || [];
+        },
+        queryOne: async (sql, params = []) => {
+          const res = await client.query(convertPlaceholders(sql), params);
+          return res.rows[0] || null;
+        },
+        run: async (sql, params = []) => {
+          const res = await client.query(convertPlaceholders(sql), params);
+          return { rowCount: res.rowCount, changes: res.rowCount, rows: res.rows };
+        }
+      };
+      const result = await callback(txHelper);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('Transaction rolled back due to error:', err.message);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 };
 
-// Initialize All Relational SQL Tables
-function initializeTables() {
-  db.serialize(async () => {
+// Initialize All 11 PostgreSQL Tables & Seed Default Records
+async function initializeTables() {
+  try {
     // 1. Users Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         phone TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        balance REAL DEFAULT 0.0,
-        deposit REAL DEFAULT 0.0,
-        withdrawal REAL DEFAULT 0.0,
-        commission REAL DEFAULT 0.0,
+        balance DOUBLE PRECISION DEFAULT 0.0,
+        deposit DOUBLE PRECISION DEFAULT 0.0,
+        withdrawal DOUBLE PRECISION DEFAULT 0.0,
+        commission DOUBLE PRECISION DEFAULT 0.0,
         scorePoints INTEGER DEFAULT 500,
-        sellTotal REAL DEFAULT 0.0,
-        cashbackReward REAL DEFAULT 0,
-        cashbackPending REAL DEFAULT 0,
+        sellTotal DOUBLE PRECISION DEFAULT 0.0,
+        cashbackReward DOUBLE PRECISION DEFAULT 0.0,
+        cashbackPending DOUBLE PRECISION DEFAULT 0.0,
         status TEXT DEFAULT 'ACTIVE',
         referralCode TEXT DEFAULT '',
         hasClaimedDevCredit INTEGER DEFAULT 0,
         createdAt TEXT
-      )
+      );
     `);
 
     // 2. Stats & Settings Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS stats_data (
         id INTEGER PRIMARY KEY,
-        exchangeRate REAL DEFAULT 110.0,
-        scoreRate REAL DEFAULT 10.0,
-        inProcessAmount REAL DEFAULT 0.0,
+        exchangeRate DOUBLE PRECISION DEFAULT 110.0,
+        scoreRate DOUBLE PRECISION DEFAULT 10.0,
+        inProcessAmount DOUBLE PRECISION DEFAULT 0.0,
         inProcessOrders INTEGER DEFAULT 0,
-        commissionRate REAL DEFAULT 4.0,
-        estimatedIncome REAL DEFAULT 0.0,
+        commissionRate DOUBLE PRECISION DEFAULT 4.0,
+        estimatedIncome DOUBLE PRECISION DEFAULT 0.0,
         isSellingOpen INTEGER DEFAULT 0,
         specialRewardActive INTEGER DEFAULT 1,
         maintenanceMode INTEGER DEFAULT 0,
@@ -78,89 +153,86 @@ function initializeTables() {
         appVersion TEXT DEFAULT 'v1.1.9',
         appDownloadUrl TEXT DEFAULT '/downloads/fintech-hub.apk',
         date TEXT
-      )
+      );
     `);
 
-    // Ensure appDownloadUrl column exists if table was already created
-    db.run(`ALTER TABLE stats_data ADD COLUMN appDownloadUrl TEXT DEFAULT '/downloads/fintech-hub.apk'`, () => {});
-
     // 3. Deposit Buy Orders Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS deposit_buy_orders (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         userId TEXT NOT NULL,
         userName TEXT,
         orderType TEXT DEFAULT 'Deposit',
-        amount REAL NOT NULL,
-        usdtAmount REAL,
+        amount DOUBLE PRECISION NOT NULL,
+        usdtAmount DOUBLE PRECISION,
         status TEXT DEFAULT 'Success',
         paymentChannel TEXT DEFAULT 'UPI Direct',
         utrNumber TEXT,
         matchedNote TEXT,
         timestamp TEXT
-      )
+      );
     `);
 
     // 4. Sell Orders Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS sell_orders (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         userId TEXT NOT NULL,
         userName TEXT,
         orderType TEXT DEFAULT 'Sell',
-        amount REAL NOT NULL,
-        usdtAmount REAL,
+        amount DOUBLE PRECISION NOT NULL,
+        usdtAmount DOUBLE PRECISION,
         status TEXT DEFAULT 'Pending',
         payoutBank TEXT,
         accountNumber TEXT,
         p2pMatchedWith TEXT,
         matchedNote TEXT,
         timestamp TEXT
-      )
+      );
     `);
 
     // 5. Transactions Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         userId TEXT NOT NULL,
         type TEXT,
-        amount REAL,
-        income REAL DEFAULT 0.0,
+        amount DOUBLE PRECISION,
+        income DOUBLE PRECISION DEFAULT 0.0,
         status TEXT DEFAULT 'Completed',
         timestamp TEXT
-      )
+      );
     `);
 
     // 6. Notifications Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         title TEXT,
         body TEXT,
         type TEXT,
         isRead INTEGER DEFAULT 0,
         time TEXT,
         targetUserId TEXT DEFAULT 'ALL'
-      )
+      );
     `);
 
     // 7. Payment Claim Offers Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS payment_offers (
         id INTEGER PRIMARY KEY,
-        amount REAL,
+        amount DOUBLE PRECISION,
         code TEXT UNIQUE,
-        income REAL,
-        specialBonus REAL,
+        income DOUBLE PRECISION,
+        specialBonus DOUBLE PRECISION,
         category TEXT
-      )
+      );
     `);
 
     // 8. User Payment Wallets Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS user_wallets (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         userId TEXT,
         userName TEXT,
         name TEXT,
@@ -168,64 +240,76 @@ function initializeTables() {
         holderName TEXT,
         type TEXT DEFAULT 'Personal',
         createdAt TEXT
-      )
+      );
     `);
 
     // 9. Score Conversions Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS score_conversions (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         userId TEXT NOT NULL,
         pointsConverted INTEGER,
-        inrReceived REAL,
+        inrReceived DOUBLE PRECISION,
         timestamp TEXT
-      )
+      );
     `);
 
     // 10. Audit Logs Table
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         action TEXT,
         detail TEXT,
         ip TEXT,
         timestamp TEXT
-      )
+      );
     `);
 
     // 11. User Claimed Offers Tracking Table (1 claim per offer per day limit)
-    db.run(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS user_claimed_offers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         userId TEXT NOT NULL,
         offerId INTEGER NOT NULL,
         offerCode TEXT,
         claimedDate TEXT NOT NULL,
         timestamp TEXT NOT NULL
-      )
+      );
     `);
 
+    // Create helpful performance indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_claimed_lookup ON user_claimed_offers(userId, offerId, claimedDate);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(userId, timestamp DESC);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_orders_user ON deposit_buy_orders(userId, timestamp DESC);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sell_orders_user ON sell_orders(userId, timestamp DESC);`);
+
     // Seed default stats if not existing
-    db.get(`SELECT COUNT(*) as count FROM stats_data`, async (err, row) => {
-      if (!err && row && row.count === 0) {
-        db.run(`
-          INSERT INTO stats_data (id, exchangeRate, scoreRate, inProcessAmount, inProcessOrders, commissionRate, estimatedIncome, isSellingOpen, specialRewardActive, maintenanceMode, adminUpiId, merchantName, adminQrText, appVersion, date)
-          VALUES (1, 110.0, 10.0, 0.0, 0, 4.0, 0.0, 0, 1, 0, '8104229900@upi', 'Fintech Hub', 'Scan & Pay via GPay / PhonePe / Paytm', 'v1.1.9', '${new Date().toLocaleDateString('en-GB')}')
-        `);
-      }
-    });
+    await pool.query(`
+      INSERT INTO stats_data (id, exchangeRate, scoreRate, inProcessAmount, inProcessOrders, commissionRate, estimatedIncome, isSellingOpen, specialRewardActive, maintenanceMode, adminUpiId, merchantName, adminQrText, appVersion, appDownloadUrl, date)
+      VALUES (1, 110.0, 10.0, 0.0, 0, 4.0, 0.0, 0, 1, 0, '8104229900@upi', 'Fintech Hub', 'Scan & Pay via GPay / PhonePe / Paytm', 'v1.1.9', '/downloads/fintech-hub.apk', CURRENT_DATE::text)
+      ON CONFLICT (id) DO NOTHING;
+    `);
 
     // Seed default offers if not existing
-    db.get(`SELECT COUNT(*) as count FROM payment_offers`, async (err, row) => {
-      if (!err && row && row.count === 0) {
-        db.run(`INSERT INTO payment_offers (id, amount, code, income, specialBonus, category) VALUES (101, 150, 'OFFER-150', 20.0, 5.0, '100-300')`);
-        db.run(`INSERT INTO payment_offers (id, amount, code, income, specialBonus, category) VALUES (102, 500, 'OFFER-500', 65.0, 15.0, '300-1000')`);
-        db.run(`INSERT INTO payment_offers (id, amount, code, income, specialBonus, category) VALUES (103, 2000, 'OFFER-2000', 260.0, 50.0, '1000+')`);
-      }
-    });
-  });
+    await pool.query(`
+      INSERT INTO payment_offers (id, amount, code, income, specialBonus, category)
+      VALUES 
+        (101, 150, 'OFFER-150', 20.0, 5.0, '100-300'),
+        (102, 500, 'OFFER-500', 65.0, 15.0, '300-1000'),
+        (103, 2000, 'OFFER-2000', 260.0, 50.0, '1000+')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    console.log('✅ PostgreSQL Schema initialized successfully. All 11 tables verified.');
+  } catch (err) {
+    console.error('⚠️ PostgreSQL Schema initialization warning:', err.message);
+    if (!process.env.DATABASE_URL) {
+      console.warn('ℹ️ Hint: Set DATABASE_URL=postgresql://user:pass@host:port/dbname in your environment or .env file.');
+    }
+  }
 }
 
+// Kick off table initialization
 initializeTables();
 
-module.exports = sqlDb;
+module.exports = db;
