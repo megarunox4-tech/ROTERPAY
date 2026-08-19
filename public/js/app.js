@@ -1046,36 +1046,16 @@ const FintechApp = {
   async loadSupportMessages() {
     const inputForm = document.getElementById('formUserSupportChat');
     const presetsBox = document.querySelector('.user-chat-presets');
-    const stream = document.getElementById('userChatStream');
-
-    // Strict Guest Check: Guest users cannot chat
-    if (!this.state.currentUser) {
-      if (inputForm) inputForm.style.display = 'none';
-      if (presetsBox) presetsBox.style.display = 'none';
-      const statusSpan = document.getElementById('userChatAgentStatusText');
-      if (statusSpan) statusSpan.innerHTML = '<span style="color:rgba(255,255,255,0.8);font-size:0.75rem;">Login Required</span>';
-      
-      if (stream) {
-        stream.innerHTML = `
-          <div style="text-align: center; padding: 2.5rem 1.5rem; background: #ffffff; margin: 1.5rem auto; border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 380px;">
-            <div style="width: 64px; height: 64px; border-radius: 50%; background: #fff3e8; color: #ff6600; display: inline-flex; align-items: center; justify-content: center; font-size: 1.7rem; margin-bottom: 12px;">
-              <i class="fa-solid fa-user-lock"></i>
-            </div>
-            <h3 style="font-size: 1.15rem; color: #1e293b; margin: 0 0 6px 0;">Login Required</h3>
-            <p style="font-size: 0.84rem; color: #64748b; margin: 0 auto 16px auto; line-height: 1.45;">
-              Guest chat is disabled. Please log in or register your account to chat with ROTERPAY Live Support.
-            </p>
-            <button type="button" class="btn-orange-full" onclick="FintechApp.showLogin()" style="width: 100%; padding: 12px; font-weight: 800; font-size: 0.92rem;">
-              <i class="fa-solid fa-arrow-right-to-bracket"></i> Login / Register Account
-            </button>
-          </div>
-        `;
-      }
-      return;
-    }
 
     if (inputForm) inputForm.style.display = 'flex';
     if (presetsBox) presetsBox.style.display = 'flex';
+
+    if (!this.state.currentUser) {
+      const statusSpan = document.getElementById('userChatAgentStatusText');
+      if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-circle" style="font-size:0.45rem; color:#4ade80;"></i> online';
+      this.renderUserChatMessages([], false, true);
+      return;
+    }
 
     const userId = this.state.currentUser.id;
     try {
@@ -2400,7 +2380,13 @@ if (window.visualViewport) {
 document.addEventListener('DOMContentLoaded', () => {
   const chatInput = document.getElementById('inputUserChatMsg');
   if (chatInput) {
-    chatInput.addEventListener('focus', () => {
+    chatInput.addEventListener('focus', (e) => {
+      if (!FintechApp.state.currentUser) {
+        chatInput.blur();
+        FintechApp.showToast('Please log in to your account to send messages', 'info');
+        FintechApp.showLogin();
+        return;
+      }
       window.scrollTo(0, 0);
       document.body.scrollTop = 0;
       setTimeout(() => {
