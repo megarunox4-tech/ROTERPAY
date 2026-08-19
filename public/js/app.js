@@ -154,6 +154,11 @@ const FintechApp = {
         if (this.state.activeAppTab === 'sell-orders') this.renderSellOrders();
       }
 
+      // Sync support chat stream in real-time when on support page
+      if (this.state.activeAppTab === 'support') {
+        this.loadSupportMessages();
+      }
+
       if (nRes.ok) {
         const nData = await nRes.json();
         this.state.notifications = nData.notifications;
@@ -1022,6 +1027,115 @@ const FintechApp = {
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (tabId === 'support') {
+      this.loadSupportMessages();
+    }
+  },
+
+  openSupportChat() {
+    this.switchAppTab('support');
+    this.loadSupportMessages();
+  },
+
+  async loadSupportMessages() {
+    const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
+    try {
+      const res = await fetch(`/api/support/messages?userId=${userId}`);
+      if (res.ok) {
+        const msgs = await res.json();
+        this.renderUserChatMessages(msgs);
+      }
+      await fetch('/api/support/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, reader: 'user' })
+      }).catch(() => {});
+    } catch (e) {
+      console.warn('Support messages fetch error:', e);
+    }
+  },
+
+  renderUserChatMessages(msgs) {
+    const container = document.getElementById('userChatStream');
+    if (!container) return;
+
+    if (!msgs || msgs.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--orange-light); color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 8px;">
+            <i class="fa-solid fa-headset"></i>
+          </div>
+          <strong style="display: block; color: var(--text-dark); font-size: 0.95rem;">How can we help you today?</strong>
+          <p style="font-size: 0.78rem; margin-top: 4px;">Send a message below or pick a quick topic to start chatting with ROTERPAY Master Admin.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = msgs.map(m => {
+      const isAdmin = m.sender === 'admin';
+      const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      if (isAdmin) {
+        return `
+          <div style="display: flex; gap: 8px; align-items: flex-start; max-width: 85%;">
+            <img src="/images/roterpay-logo.png" alt="Admin" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid #ffe3d1; flex-shrink: 0; margin-top: 2px;">
+            <div>
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--primary-orange); margin-bottom: 2px; display: block;">Master Admin • Support Desk</span>
+              <div style="background: #ffffff; color: var(--text-dark); padding: 10px 14px; border-radius: 4px 16px 16px 16px; border: 1px solid var(--orange-border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-size: 0.88rem; line-height: 1.45; word-break: break-word;">
+                ${m.message}
+              </div>
+              <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr}</span>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div style="display: flex; flex-direction: column; align-items: flex-end; max-width: 85%; margin-left: auto;">
+            <div style="background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; padding: 10px 14px; border-radius: 16px 16px 4px 16px; font-size: 0.88rem; line-height: 1.45; word-break: break-word; box-shadow: 0 4px 12px rgba(255,102,0,0.22);">
+              ${m.message}
+            </div>
+            <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr} ✓</span>
+          </div>
+        `;
+      }
+    }).join('');
+
+    container.scrollTop = container.scrollHeight;
+  },
+
+  async handleSendSupportMessage(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('inputUserChatMsg');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
+    const userName = this.state.currentUser ? this.state.currentUser.name : 'Guest User';
+
+    input.value = '';
+    
+    try {
+      const res = await fetch('/api/support/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userName, message: text })
+      });
+      if (res.ok) {
+        await this.loadSupportMessages();
+      }
+    } catch (err) {
+      this.showToast('Failed to send message', 'danger');
+    }
+  },
+
+  sendPresetMsg(text) {
+    const input = document.getElementById('inputUserChatMsg');
+    if (input) {
+      input.value = text;
+      this.handleSendSupportMessage();
+    }
   },
 
   goBackFromPayment() {
@@ -1659,7 +1773,7 @@ const FintechApp = {
     });
 
     document.getElementById('btnAssetWallet')?.addEventListener('click', () => this.switchAppTab('tool'));
-    document.getElementById('btnAssetService')?.addEventListener('click', () => document.getElementById('modalSupportChat')?.classList.add('active'));
+    document.getElementById('btnAssetService')?.addEventListener('click', () => this.openSupportChat());
     document.getElementById('btnAssetMessage')?.addEventListener('click', () => document.getElementById('modalNotifications')?.classList.add('active'));
     document.getElementById('btnAssetPin')?.addEventListener('click', () => this.openPinCodeView());
 
@@ -1669,32 +1783,9 @@ const FintechApp = {
     document.getElementById('btnConfirmPin')?.addEventListener('click', () => this.confirmPinCodeChange());
     this.initPinBoxAutoAdvance();
 
+    // Dedicated Full-Page Live Support Chat Trigger
     document.getElementById('floatingBotWidget')?.addEventListener('click', () => {
-      document.getElementById('modalSupportChat')?.classList.add('active');
-    });
-
-    document.getElementById('btnSendChat')?.addEventListener('click', () => {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const box = document.getElementById('chatMessagesBox');
-      const userMsg = document.createElement('div');
-      userMsg.className = 'chat-msg';
-      userMsg.style.background = '#ffffff';
-      userMsg.style.color = 'var(--text-dark)';
-      userMsg.style.textAlign = 'right';
-      userMsg.textContent = text;
-      box.appendChild(userMsg);
-      input.value = '';
-
-      setTimeout(() => {
-        const reply = document.createElement('div');
-        reply.className = 'chat-msg';
-        reply.textContent = 'Support Agent: We have received your query. A representative will contact you shortly!';
-        box.appendChild(reply);
-        box.scrollTop = box.scrollHeight;
-      }, 1000);
+      this.openSupportChat();
     });
 
     // LOGOUT ACCOUNT

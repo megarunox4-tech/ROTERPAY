@@ -154,6 +154,29 @@
       .content-body { padding: 1.25rem; }
     }
 
+    /* LIVE SUPPORT MESSENGER RESPONSIVE STYLES */
+    .chat-threads-pane { transition: all 0.2s ease; }
+    .chat-messages-pane { transition: all 0.2s ease; }
+    .chat-thread-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.15s ease;
+    }
+    .chat-thread-item:hover { background: #fff8f3; }
+    .chat-thread-item.active { background: #fff1e6; border-left: 3px solid var(--primary-orange); }
+
+    @media screen and (max-width: 768px) {
+      .chat-threads-pane { width: 100% !important; }
+      .chat-messages-pane { display: none !important; width: 100% !important; }
+      #adminMessengerContainer.show-chat .chat-threads-pane { display: none !important; }
+      #adminMessengerContainer.show-chat .chat-messages-pane { display: flex !important; }
+      .mobile-thread-back { display: inline-flex !important; }
+    }
+
     @media screen and (max-width: 640px) {
       .auth-box { width: 92%; padding: 2rem 1.25rem; }
       .metrics-grid { grid-template-columns: 1fr; gap: 0.75rem; }
@@ -221,6 +244,10 @@
         <li class="menu-item" data-tab="orders"><i class="fa-solid fa-money-bill-transfer"></i> Deposit & Sell Orders</li>
         <li class="menu-item" data-tab="wallets"><i class="fa-solid fa-wallet"></i> User Payment Tools</li>
         <li class="menu-header">Communications & Offers</li>
+        <li class="menu-item" data-tab="support" style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-headset"></i> Live Support Desk</span>
+          <span id="adminSupportUnreadBadge" class="badge badge-warning" style="display:none; font-size:0.72rem; padding: 2px 8px; border-radius: 10px;">0</span>
+        </li>
         <li class="menu-item" data-tab="notifications"><i class="fa-regular fa-bell"></i> Broadcast Notifications</li>
         <li class="menu-item" data-tab="offers"><i class="fa-solid fa-tags"></i> Payment Claim Offers</li>
         <li class="menu-header">Security & Config</li>
@@ -564,6 +591,91 @@
 
               <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
             </form>
+          </div>
+        </div>
+
+        <!-- MODULE: DEDICATED LIVE SUPPORT DESK (REAL-TIME USER <-> ADMIN 2-WAY MESSENGER) -->
+        <div id="tab-support" class="tab-view">
+          <div class="card-panel" style="padding: 0; overflow: hidden; border: 1.5px solid var(--orange-border); box-shadow: 0 10px 30px rgba(0,0,0,0.06); height: calc(100vh - 140px); min-height: 580px; display: flex; flex-direction: column;">
+            
+            <div style="display: flex; height: 100%; position: relative;" id="adminMessengerContainer">
+              
+              <!-- LEFT PANE: USER CONVERSATION THREADS -->
+              <div class="chat-threads-pane" id="chatThreadsPane" style="width: 340px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: #ffffff; flex-shrink: 0;">
+                
+                <div style="padding: 14px; border-bottom: 1px solid var(--border-color); background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                      <i class="fa-solid fa-comments text-orange"></i> Support Threads
+                    </h3>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Real-time live user tickets</span>
+                  </div>
+                  <button class="btn btn-secondary" onclick="AdminPortal.loadSupportThreads()" style="padding: 5px 10px; font-size: 0.75rem;" title="Refresh Threads">
+                    <i class="fa-solid fa-rotate-right"></i>
+                  </button>
+                </div>
+
+                <div style="padding: 10px 14px; border-bottom: 1px solid var(--border-color);">
+                  <input type="text" id="searchSupportThreads" class="form-control" placeholder="Search user by name or ID..." style="font-size: 0.82rem; padding: 8px 12px; border-radius: 10px;" oninput="AdminPortal.filterSupportThreads(this.value)">
+                </div>
+
+                <div id="adminThreadsList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
+                  <!-- Thread items rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- RIGHT PANE: ACTIVE CONVERSATION STREAM -->
+              <div class="chat-messages-pane" id="chatMessagesPane" style="flex: 1; display: flex; flex-direction: column; background: #fffaf6; min-width: 0;">
+                
+                <!-- Chat Active Header -->
+                <div id="activeThreadHeader" style="padding: 12px 16px; background: #ffffff; border-bottom: 1px solid var(--orange-border); display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn btn-secondary mobile-thread-back" onclick="AdminPortal.backToThreadList()" style="display: none; padding: 6px 10px; border-radius: 8px;">
+                      <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--orange-light); border: 1.5px solid var(--orange-border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-orange);" id="activeThreadAvatar">
+                      <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                      <strong style="font-size: 0.95rem; color: #1e293b; display: block;" id="activeThreadUserName">Select a conversation</strong>
+                      <span style="font-size: 0.74rem; color: var(--text-muted);" id="activeThreadUserSub">Choose a user from the left pane to start live messaging</span>
+                    </div>
+                  </div>
+                  <div id="activeThreadActions" style="display: none; align-items: center; gap: 8px;">
+                    <button class="btn btn-secondary" id="btnActiveUserAdjustBal" style="font-size: 0.75rem; padding: 6px 12px;">
+                      <i class="fa-solid fa-wallet text-orange"></i> Adjust Balance
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Messages Stream Area -->
+                <div id="adminChatStream" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                  <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-headset" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                    <strong style="font-size: 1rem; color: #475569;">No Conversation Selected</strong>
+                    <p style="font-size: 0.82rem; margin-top: 4px;">Click on any user from the left list to view their message history and reply live.</p>
+                  </div>
+                </div>
+
+                <!-- Quick Admin Preset Responses -->
+                <div id="adminQuickRepliesBox" style="display: none; padding: 8px 14px; background: #ffffff; border-top: 1px solid #f1f5f9; gap: 6px; overflow-x: auto; flex-shrink: 0; white-space: nowrap;">
+                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Hello! How can I assist you with your ROTERPAY account today?')">👋 Greeting</button>
+                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Your deposit payment has been verified & credited to your balance successfully!')">✅ Deposit Verified</button>
+                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Please provide your 12-digit UTR transaction reference number for verification.')">📋 Request UTR</button>
+                  <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;" onclick="AdminPortal.sendQuickReply('Your withdrawal order has been approved and processed to your UPI payment tool.')">💸 Withdrawal Processed</button>
+                </div>
+
+                <!-- Admin Reply Form -->
+                <form id="formAdminReply" onsubmit="AdminPortal.handleSendAdminReply(event)" style="padding: 12px 14px; background: #ffffff; border-top: 1px solid var(--orange-border); display: none; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <input type="text" id="adminReplyInput" class="form-control" placeholder="Type your response to the user..." required autocomplete="off" style="padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; flex: 1;">
+                  <button type="submit" class="btn btn-primary" style="padding: 11px 20px; font-size: 0.92rem; font-weight: 800; border-radius: 12px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; background: linear-gradient(135deg, #ff6600, #ea580c); box-shadow: 0 4px 14px rgba(255,102,0,0.3);">
+                    <span>Reply</span> <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                </form>
+
+              </div>
+
+            </div>
           </div>
         </div>
 
@@ -1069,6 +1181,17 @@
               document.getElementById('adminAuthScreen').style.display = 'none';
               document.getElementById('adminShell').style.display = 'flex';
               await this.loadAll();
+
+              // Auto-sync support threads & active conversation every 3 seconds
+              setInterval(() => {
+                if (this.state.isAuthenticated) {
+                  this.loadSupportThreads();
+                  if (this.state.activeSupportUserId) {
+                    this.loadActiveThreadMessages();
+                  }
+                }
+              }, 3000);
+
               return;
             }
           } catch (e) {}
@@ -1207,7 +1330,8 @@
           this.loadNotifs(),
           this.loadOffers(),
           this.loadRates(),
-          this.loadLogs()
+          this.loadLogs(),
+          this.loadSupportThreads()
         ]);
       },
 
@@ -1931,6 +2055,216 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+      },
+
+      // LIVE SUPPORT DESK CONTROLLER METHODS
+      async loadSupportThreads() {
+        try {
+          const res = await this.apiFetch('/api/admin/support/threads');
+          if (!res.ok) return;
+          const threads = await res.json();
+          this.state.supportThreads = threads;
+          this.renderSupportThreads();
+
+          const totalUnread = threads.reduce((acc, t) => acc + parseInt(t.unreadcount || t.unreadCount || 0), 0);
+          const badge = document.getElementById('adminSupportUnreadBadge');
+          if (badge) {
+            if (totalUnread > 0) {
+              badge.style.display = 'inline-block';
+              badge.textContent = totalUnread;
+            } else {
+              badge.style.display = 'none';
+            }
+          }
+        } catch (err) {
+          console.warn('Load support threads error:', err);
+        }
+      },
+
+      filterSupportThreads(query) {
+        this.state.supportSearchQuery = (query || '').toLowerCase().trim();
+        this.renderSupportThreads();
+      },
+
+      renderSupportThreads() {
+        const container = document.getElementById('adminThreadsList');
+        if (!container) return;
+
+        let threads = this.state.supportThreads || [];
+        if (this.state.supportSearchQuery) {
+          threads = threads.filter(t => 
+            (t.username || '').toLowerCase().includes(this.state.supportSearchQuery) ||
+            String(t.userid || '').toLowerCase().includes(this.state.supportSearchQuery) ||
+            (t.lastmessage || '').toLowerCase().includes(this.state.supportSearchQuery)
+          );
+        }
+
+        if (threads.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+              <i class="fa-solid fa-inbox" style="font-size: 1.8rem; margin-bottom: 6px; display: block; color: #cbd5e1;"></i>
+              <span style="font-size: 0.84rem;">No support threads found</span>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = threads.map(t => {
+          const userId = t.userid || t.userId;
+          const userName = t.username || t.userName || 'User';
+          const lastMsg = t.lastmessage || t.lastMessage || 'No message';
+          const unread = parseInt(t.unreadcount || t.unreadCount || 0);
+          const isActive = this.state.activeSupportUserId === userId;
+          const timeStr = t.lasttimestamp ? new Date(t.lasttimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+          return `
+            <div class="chat-thread-item ${isActive ? 'active' : ''}" onclick="AdminPortal.selectSupportThread('${userId}', '${userName.replace(/'/g, "\\'")}')">
+              <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--orange-light); border: 1.5px solid var(--orange-border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-orange); flex-shrink: 0;">
+                ${userName.charAt(0).toUpperCase()}
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                  <strong style="font-size: 0.88rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${userName}</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted);">${timeStr}</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 0.74rem; color: ${unread > 0 ? '#1e293b' : 'var(--text-muted)'}; font-weight: ${unread > 0 ? '700' : '400'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+                    ${t.lastsender === 'admin' ? '✓ You: ' : ''}${lastMsg}
+                  </span>
+                  ${unread > 0 ? `<span class="badge badge-warning" style="font-size: 0.65rem; padding: 1px 6px; border-radius: 10px;">${unread}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      async selectSupportThread(userId, userName) {
+        this.state.activeSupportUserId = userId;
+        this.state.activeSupportUserName = userName;
+
+        document.getElementById('adminMessengerContainer')?.classList.add('show-chat');
+
+        document.getElementById('activeThreadUserName').textContent = userName;
+        document.getElementById('activeThreadUserSub').textContent = `User ID: #${userId} • Live Support Session`;
+        document.getElementById('activeThreadActions').style.display = 'flex';
+        document.getElementById('adminQuickRepliesBox').style.display = 'flex';
+        document.getElementById('formAdminReply').style.display = 'flex';
+        
+        const btnAdj = document.getElementById('btnActiveUserAdjustBal');
+        if (btnAdj) {
+          btnAdj.onclick = () => {
+            this.openAdjustModal(userId);
+          };
+        }
+
+        this.renderSupportThreads();
+        await this.loadActiveThreadMessages();
+      },
+
+      backToThreadList() {
+        document.getElementById('adminMessengerContainer')?.classList.remove('show-chat');
+      },
+
+      async loadActiveThreadMessages() {
+        const userId = this.state.activeSupportUserId;
+        if (!userId) return;
+
+        try {
+          const res = await this.apiFetch(`/api/support/messages?userId=${userId}`);
+          if (!res.ok) return;
+          const msgs = await res.json();
+          this.renderAdminChatStream(msgs);
+
+          await this.apiFetch('/api/support/mark-read', {
+            method: 'POST',
+            body: JSON.stringify({ userId, reader: 'admin' })
+          });
+        } catch (err) {
+          console.warn('Active thread messages error:', err);
+        }
+      },
+
+      renderAdminChatStream(msgs) {
+        const container = document.getElementById('adminChatStream');
+        if (!container) return;
+
+        if (!msgs || msgs.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+              <p style="font-size: 0.85rem;">No previous messages in this conversation. Send a message to start.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => {
+          const isAdmin = m.sender === 'admin';
+          const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          if (isAdmin) {
+            return `
+              <div style="display: flex; flex-direction: column; align-items: flex-end; max-width: 80%; margin-left: auto;">
+                <div style="background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; padding: 10px 14px; border-radius: 14px 14px 2px 14px; font-size: 0.88rem; line-height: 1.45; word-break: break-word; box-shadow: 0 4px 12px rgba(255,102,0,0.22);">
+                  ${m.message}
+                </div>
+                <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">You (Master Admin) • ${timeStr}</span>
+              </div>
+            `;
+          } else {
+            return `
+              <div style="display: flex; gap: 8px; align-items: flex-start; max-width: 80%;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.82rem; flex-shrink: 0;">
+                  ${(m.userName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <span style="font-size: 0.72rem; font-weight: 700; color: #334155; margin-bottom: 2px; display: block;">${m.userName || 'App User'} (#${m.userId})</span>
+                  <div style="background: #ffffff; color: #1e293b; padding: 10px 14px; border-radius: 2px 14px 14px 14px; border: 1px solid var(--orange-border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-size: 0.88rem; line-height: 1.45; word-break: break-word;">
+                    ${m.message}
+                  </div>
+                  <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr}</span>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+
+        container.scrollTop = container.scrollHeight;
+      },
+
+      async handleSendAdminReply(e) {
+        if (e) e.preventDefault();
+        const input = document.getElementById('adminReplyInput');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+
+        const userId = this.state.activeSupportUserId;
+        if (!userId) return alert('Please select a user thread first');
+
+        input.value = '';
+
+        try {
+          const res = await this.apiFetch('/api/admin/support/reply', {
+            method: 'POST',
+            body: JSON.stringify({ userId, message: text })
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            return alert(data.error || 'Failed to send admin reply');
+          }
+          await this.loadActiveThreadMessages();
+          await this.loadSupportThreads();
+        } catch (err) {
+          alert(err.message || 'Error sending reply');
+        }
+      },
+
+      sendQuickReply(text) {
+        const input = document.getElementById('adminReplyInput');
+        if (input) {
+          input.value = text;
+          this.handleSendAdminReply();
+        }
       }
     };
   </script>

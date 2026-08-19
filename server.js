@@ -1550,6 +1550,116 @@ app.get('/api/admin/logs', requireAdminAuth, async (req, res) => {
   }
 });
 
+// ==========================================
+// 4. REAL-TIME LIVE SUPPORT CHAT API
+// ==========================================
+
+// Get user chat messages
+app.get('/api/support/messages', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    const messages = await db.queryAll(
+      `SELECT * FROM support_messages WHERE userId = $1 ORDER BY timestamp ASC`,
+      [userId]
+    );
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Send message from App User
+app.post('/api/support/send', async (req, res) => {
+  try {
+    const { userId, userName, message } = req.body;
+    if (!userId || !message || !message.trim()) {
+      return res.status(400).json({ error: 'userId and message are required' });
+    }
+
+    const cleanMsg = message.trim();
+    const cleanName = userName ? userName.trim() : 'User';
+
+    const result = await db.queryOne(
+      `INSERT INTO support_messages (userId, userName, sender, message, isRead, timestamp)
+       VALUES ($1, $2, 'user', $3, 0, NOW()) RETURNING *`,
+      [userId, cleanName, cleanMsg]
+    );
+
+    res.json({ success: true, message: result });
+  } catch (err) {
+    console.error('Support send error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Admin: Reply to user support ticket / chat
+app.post('/api/admin/support/reply', requireAdminAuth, async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+    if (!userId || !message || !message.trim()) {
+      return res.status(400).json({ error: 'userId and message are required' });
+    }
+
+    const cleanMsg = message.trim();
+    const result = await db.queryOne(
+      `INSERT INTO support_messages (userId, userName, sender, message, isRead, timestamp)
+       VALUES ($1, 'Master Support', 'admin', $2, 0, NOW()) RETURNING *`,
+      [userId, cleanMsg]
+    );
+
+    // Also mark earlier user messages in this thread as read
+    await db.run(`UPDATE support_messages SET isRead = 1 WHERE userId = $1 AND sender = 'user'`, [userId]);
+
+    await logAudit('Support Reply', `Admin replied to User ${userId}: "${cleanMsg.substring(0, 40)}..."`, req);
+
+    res.json({ success: true, message: result });
+  } catch (err) {
+    console.error('Support admin reply error:', err);
+    res.status(500).json({ error: 'Failed to send admin reply' });
+  }
+});
+
+// Admin: Fetch all active user support chat threads
+app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
+  try {
+    const threads = await db.queryAll(`
+      SELECT 
+        sm.userId,
+        MAX(sm.userName) as userName,
+        (SELECT message FROM support_messages WHERE userId = sm.userId ORDER BY timestamp DESC LIMIT 1) as lastMessage,
+        (SELECT sender FROM support_messages WHERE userId = sm.userId ORDER BY timestamp DESC LIMIT 1) as lastSender,
+        MAX(sm.timestamp) as lastTimestamp,
+        COUNT(CASE WHEN sm.sender = 'user' AND sm.isRead = 0 THEN 1 END) as unreadCount
+      FROM support_messages sm
+      GROUP BY sm.userId
+      ORDER BY lastTimestamp DESC
+    `);
+    res.json(threads);
+  } catch (err) {
+    console.error('Support threads error:', err);
+    res.status(500).json({ error: 'Failed to fetch support threads' });
+  }
+});
+
+// Mark thread as read
+app.post('/api/support/mark-read', async (req, res) => {
+  try {
+    const { userId, reader } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    
+    if (reader === 'admin') {
+      await db.run(`UPDATE support_messages SET isRead = 1 WHERE userId = $1 AND sender = 'user'`, [userId]);
+    } else {
+      await db.run(`UPDATE support_messages SET isRead = 1 WHERE userId = $1 AND sender = 'admin'`, [userId]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark read' });
+  }
+});
+
 // SPA Catch-all Route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

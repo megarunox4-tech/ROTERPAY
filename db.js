@@ -316,12 +316,26 @@ async function initializeTables() {
       );
     `);
 
+    // 12. Real-Time Live Support Chat Messages Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id SERIAL PRIMARY KEY,
+        userId TEXT NOT NULL,
+        userName TEXT,
+        sender TEXT NOT NULL,
+        message TEXT NOT NULL,
+        isRead INTEGER DEFAULT 0,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Performance Indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_claimed_lookup ON user_claimed_offers(userId, offerId, claimedDate);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_orders_user ON deposit_buy_orders(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sell_orders_user ON sell_orders(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_user_time ON support_messages(userId, timestamp ASC);`);
 
     // Seed initial admin account ONLY if admins table has 0 records and credentials are configured
     const adminCheck = await pool.query(`SELECT COUNT(*) as count FROM admins`);
