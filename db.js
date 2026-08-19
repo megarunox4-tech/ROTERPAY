@@ -323,18 +323,22 @@ async function initializeTables() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sell_orders_user ON sell_orders(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);`);
 
-    // Seed default initial admin if no admin exists
+    // Seed initial admin account ONLY if admins table is empty AND ADMIN_USERNAME / ADMIN_PASSCODE are provided
     const adminCheck = await pool.query(`SELECT COUNT(*) as count FROM admins`);
     const adminCount = Number(adminCheck.rows[0]?.count || 0);
-    if (adminCount === 0) {
-      const initialUsername = process.env.ADMIN_USERNAME || 'admin';
-      const initialPasscode = process.env.ADMIN_PASSCODE || 'admin123';
+    if (adminCount === 0 && process.env.ADMIN_USERNAME && process.env.ADMIN_PASSCODE) {
+      const initialUsername = String(process.env.ADMIN_USERNAME).trim();
+      const initialPasscode = String(process.env.ADMIN_PASSCODE).trim();
       const initialHash = await bcrypt.hash(initialPasscode, 10);
       await pool.query(
         `INSERT INTO admins (username, password_hash, role, status) VALUES ($1, $2, 'admin', 'ACTIVE') ON CONFLICT (username) DO NOTHING;`,
         [initialUsername, initialHash]
       );
-      console.log(`🔐 Initial PostgreSQL Admin account verified.`);
+      console.log(`🔐 Initial PostgreSQL Admin account created from environment configuration.`);
+    } else if (adminCount === 0) {
+      console.log(`ℹ️ PostgreSQL admins table is empty. Please set ADMIN_USERNAME and ADMIN_PASSCODE to seed initial administrator.`);
+    } else {
+      console.log(`🔐 PostgreSQL admins table active (${adminCount} admin account(s) registered).`);
     }
 
     // Seed default stats if not existing

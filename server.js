@@ -177,10 +177,13 @@ app.get('/health/db', async (req, res) => {
   try {
     const result = await db.queryOne('SELECT 1 as alive');
     if (result && (result.alive === 1 || result.alive === '1')) {
+      const adminCountRow = await db.queryOne('SELECT COUNT(*) as count FROM admins');
+      const adminCount = adminCountRow ? Number(adminCountRow.count) : 0;
       return res.json({
         status: 'ok',
         database: 'connected',
         type: 'PostgreSQL',
+        adminRecordsCount: adminCount,
         timestamp: new Date().toISOString()
       });
     }
@@ -910,15 +913,15 @@ app.post('/api/credits/claim', async (req, res) => {
 // 3. ADMIN MANAGEMENT API ROUTES (POSTGRESQL-BACKED & PROTECTED)
 // ==========================================
 
-// Admin Login (Validates against 'admins' PostgreSQL table)
+// Admin Login (Authenticates STRICTLY against 'admins' PostgreSQL table)
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!password) {
-      return res.status(400).json({ error: 'Password is required' });
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const adminUser = String(username || process.env.ADMIN_USERNAME || 'admin').trim();
+    const adminUser = String(username).trim();
     const admin = await db.queryOne(`SELECT * FROM admins WHERE username = $1 LIMIT 1`, [adminUser]);
 
     if (!admin) {
@@ -949,7 +952,7 @@ app.post('/api/admin/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Admin auth error:', err);
+    console.error('Admin auth error:', err.message);
     res.status(500).json({ error: 'Admin authentication error' });
   }
 });
