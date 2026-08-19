@@ -208,8 +208,10 @@
         <li class="menu-item" data-tab="logs"><i class="fa-solid fa-shield-cat"></i> Security Audit Logs</li>
       </ul>
 
-      <div class="sidebar-footer">
-        <button class="btn-lock" id="btnLockAdmin"><i class="fa-solid fa-lock"></i> Lock Session</button>
+      <div class="sidebar-footer" style="padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn-lock" id="btnSidebarLogout" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; padding: 10px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35); transition: transform 0.15s ease;">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout Admin
+        </button>
       </div>
     </aside>
 
@@ -227,9 +229,12 @@
           </button>
           <h1 id="pageTitleHeading">Dashboard Overview</h1>
         </div>
-        <div class="header-right">
+        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
           <div class="status-badge"><span class="dot-live"></span> Master Admin Mode</div>
           <span style="font-size:0.88rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay">14/08/2026</span>
+          <button id="btnHeaderLogout" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.35); padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+          </button>
         </div>
       </header>
 
@@ -959,14 +964,20 @@
           }
         });
 
-        document.getElementById('btnLockAdmin').addEventListener('click', () => {
-          this.state.isAuthenticated = false;
-          this.state.token = null;
-          sessionStorage.removeItem('fintech_admin_token');
-          document.getElementById('adminAuthScreen').style.display = 'flex';
-          document.getElementById('adminShell').style.display = 'none';
-          document.getElementById('authPassword').value = '';
-        });
+        const handleLogout = () => {
+          if (confirm('Are you sure you want to log out of the Admin Dashboard?')) {
+            this.state.isAuthenticated = false;
+            this.state.token = null;
+            sessionStorage.removeItem('fintech_admin_token');
+            document.getElementById('adminAuthScreen').style.display = 'flex';
+            document.getElementById('adminShell').style.display = 'none';
+            document.getElementById('authPassword').value = '';
+          }
+        };
+
+        document.getElementById('btnSidebarLogout')?.addEventListener('click', handleLogout);
+        document.getElementById('btnHeaderLogout')?.addEventListener('click', handleLogout);
+        document.getElementById('btnLockAdmin')?.addEventListener('click', handleLogout);
 
         document.getElementById('btnMobileSidebarToggle')?.addEventListener('click', () => {
           document.querySelector('.admin-sidebar')?.classList.toggle('active');
