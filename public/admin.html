@@ -191,7 +191,12 @@
         </div>
         <div style="margin-bottom: 18px; text-align: left;">
           <label style="display:block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Passcode / Password</label>
-          <input type="password" id="authPassword" class="form-input" placeholder="Enter passcode" required autocomplete="current-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="authPassword" class="form-input" placeholder="Enter passcode" required autocomplete="current-password" style="padding-right: 42px;">
+            <button type="button" class="btn-toggle-password" data-target="authPassword" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn-orange-full">Authenticate Master Admin</button>
       </form>
@@ -583,7 +588,12 @@
                   <label style="font-weight: 800; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 6px;">
                     <i class="fa-solid fa-lock text-orange"></i> Current Admin Password <span style="color:#ef4444;">*</span>
                   </label>
-                  <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter your current admin password to authorize changes" required autocomplete="current-password" style="background:#fff;">
+                  <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter your current admin password to authorize changes" required autocomplete="current-password" style="background:#fff; padding-right: 42px;">
+                    <button type="button" class="btn-toggle-password" data-target="adminCurrPass" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
                   <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Required for security verification before making any credential updates.</span>
                 </div>
 
@@ -615,11 +625,21 @@
                   <div class="form-grid-2">
                     <div class="form-group" style="margin-bottom: 0;">
                       <label style="font-weight: 700; font-size: 0.82rem;">New Password</label>
-                      <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new password (min 4 chars)" minlength="4" autocomplete="new-password">
+                      <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new password (min 4 chars)" minlength="4" autocomplete="new-password" style="padding-right: 42px;">
+                        <button type="button" class="btn-toggle-password" data-target="adminNewPass" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+                          <i class="fa-solid fa-eye"></i>
+                        </button>
+                      </div>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                       <label style="font-weight: 700; font-size: 0.82rem;">Confirm New Password</label>
-                      <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" minlength="4" autocomplete="new-password">
+                      <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" minlength="4" autocomplete="new-password" style="padding-right: 42px;">
+                        <button type="button" class="btn-toggle-password" data-target="adminConfirmPass" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+                          <i class="fa-solid fa-eye"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; display: block;">Leave password blank if you only wish to change your Admin Username.</span>
@@ -679,7 +699,12 @@
           </div>
           <div class="form-group">
             <label>Login Password</label>
-            <input type="password" id="addPassword" class="form-control" placeholder="Enter user password" required>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="addPassword" class="form-control" placeholder="Enter user password" required style="padding-right: 42px;">
+              <button type="button" class="btn-toggle-password" data-target="addPassword" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label>Custom User ID Code (Optional)</label>
@@ -740,7 +765,12 @@
             </div>
             <div class="form-group">
               <label><i class="fa-solid fa-key text-orange"></i> Account Password</label>
-              <input type="text" id="editPassword" class="form-control" placeholder="Change Password" required>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="editPassword" class="form-control" placeholder="Change Password" required style="padding-right: 42px;">
+                <button type="button" class="btn-toggle-password" data-target="editPassword" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; padding: 4px;" title="Show/Hide Password">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -996,6 +1026,31 @@
         if (dateEl) {
           dateEl.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
+
+        // Global Password Visibility Toggle Listener
+        document.addEventListener('click', (e) => {
+          const toggleBtn = e.target.closest('.btn-toggle-password');
+          if (!toggleBtn) return;
+          const targetId = toggleBtn.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          if (!input) return;
+
+          const isPassword = input.type === 'password';
+          input.type = isPassword ? 'text' : 'password';
+
+          const icon = toggleBtn.querySelector('i');
+          if (icon) {
+            if (isPassword) {
+              icon.classList.remove('fa-eye');
+              icon.classList.add('fa-eye-slash');
+              toggleBtn.style.color = 'var(--primary-orange)';
+            } else {
+              icon.classList.remove('fa-eye-slash');
+              icon.classList.add('fa-eye');
+              toggleBtn.style.color = '#94a3b8';
+            }
+          }
+        });
 
         // Validate admin session with live server check
         const savedToken = sessionStorage.getItem('fintech_admin_token');
