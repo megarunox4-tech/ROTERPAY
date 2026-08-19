@@ -1587,65 +1587,64 @@
           </div>
         </section>
 
-        <!-- TAB 9: DEDICATED FULL-PAGE LIVE SUPPORT CHAT -->
+        <!-- TAB 9: WHATSAPP-STYLE LIVE SUPPORT CHAT -->
         <section id="tab-support" class="app-tab-view">
-          <div style="padding: 0.5rem 0;">
-            
-            <!-- Top Header with Back to Home -->
-            <div class="flex-between margin-bottom-1rem" style="align-items: center;">
-              <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')" style="border-radius: 20px; font-weight: 700; padding: 6px 14px;">
-                <i class="fa-solid fa-arrow-left"></i> Back
-              </button>
-              <div style="text-align: center; flex: 1;">
-                <h2 style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 800; color: var(--text-dark); margin: 0;">
-                  <i class="fa-solid fa-headset text-orange"></i> Live Helpdesk
-                </h2>
-                <span style="font-size: 0.72rem; color: #10b981; font-weight: 700;">● Official Master Admin Online</span>
-              </div>
-              <button class="btn btn-secondary" onclick="FintechApp.loadSupportMessages()" style="border-radius: 50%; width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Refresh Chat">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
 
-            <!-- Full-Page Live Chat Messenger Box -->
-            <div class="card" style="display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; border: 1.5px solid var(--orange-border); box-shadow: 0 10px 25px rgba(255,102,0,0.08); padding: 0; height: calc(100vh - 190px); min-height: 480px;">
-              
-              <!-- Chat Banner -->
-              <div style="background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="/images/roterpay-logo.png" alt="Support Agent" style="width: 38px; height: 38px; border-radius: 12px; border: 1.5px solid #ffe3d1; object-fit: cover;">
-                  <div>
-                    <strong style="font-size: 0.92rem; display: block; font-family: var(--font-heading);">ROTERPAY Support Team</strong>
-                    <span style="font-size: 0.72rem; opacity: 0.95;"><i class="fa-solid fa-bolt"></i> Average reply time: Under 1 minute</span>
-                  </div>
+          <!-- Back bar -->
+          <div class="user-chat-back-bar">
+            <button class="btn btn-secondary" onclick="FintechApp.switchAppTab('home')" style="border-radius: 20px; font-weight: 700; padding: 6px 14px; font-size: 0.82rem;">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </button>
+            <div style="flex: 1; text-align: center;">
+              <strong style="font-size: 1rem; color: var(--text-dark); font-family: var(--font-heading);">
+                <i class="fa-solid fa-headset" style="color: #ff6600;"></i> Live Helpdesk
+              </strong>
+            </div>
+            <button onclick="FintechApp.loadSupportMessages()" style="width: 34px; height: 34px; border-radius: 50%; background: var(--orange-light); border: 1.5px solid var(--orange-border); color: var(--primary-orange); display: flex; align-items: center; justify-content: center; font-size: 0.85rem;" title="Refresh">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+
+          <!-- Chat container -->
+          <div class="user-chat-container">
+
+            <!-- Header -->
+            <div class="user-chat-header">
+              <div class="user-chat-header-left">
+                <img src="/images/roterpay-logo.png" alt="Support" class="user-chat-agent-avatar" onerror="this.style.display='none'">
+                <div class="user-chat-agent-info">
+                  <strong>ROTERPAY Support Team</strong>
+                  <span><i class="fa-solid fa-circle" style="font-size:0.5rem; color:#4ade80;"></i> Online &bull; avg reply &lt;1 min</span>
                 </div>
-                <span class="badge" style="background: rgba(255,255,255,0.25); color:#fff; font-size:0.72rem;">24/7 Live</span>
               </div>
-
-              <!-- Live Message Stream -->
-              <div id="userChatStream" style="flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fffaf6; -webkit-overflow-scrolling: touch;">
-                <!-- Chat messages rendered dynamically -->
-              </div>
-
-              <!-- Quick Query Preset Chips -->
-              <div style="padding: 8px 12px; background: #ffffff; border-top: 1px solid #f1f5f9; display: flex; gap: 6px; overflow-x: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch;">
-                <button type="button" class="btn-chat-preset" onclick="FintechApp.sendPresetMsg('How to deposit and buy USDT?')">💰 Deposit Help</button>
-                <button type="button" class="btn-chat-preset" onclick="FintechApp.sendPresetMsg('My deposit order is pending approval.')">⏳ Deposit Pending</button>
-                <button type="button" class="btn-chat-preset" onclick="FintechApp.sendPresetMsg('How to sell & withdraw money to UPI?')">💸 Withdrawal Help</button>
-                <button type="button" class="btn-chat-preset" onclick="FintechApp.sendPresetMsg('Need assistance with Special Claim Offer.')">🎁 Claim Offer</button>
-              </div>
-
-              <!-- Chat Input Form -->
-              <form id="formUserSupportChat" onsubmit="FintechApp.handleSendSupportMessage(event)" style="padding: 10px 12px; background: #ffffff; border-top: 1px solid var(--orange-border); display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                <input type="text" id="inputUserChatMsg" class="form-control" placeholder="Type your message to Admin..." required autocomplete="off" style="padding: 12px 16px; border-radius: 24px; font-size: 0.9rem; flex: 1; border: 1.5px solid var(--border-color);">
-                <button type="submit" class="btn-orange-deposit-large" style="padding: 11px 18px; border-radius: 24px; font-size: 0.92rem; font-weight: 800; display: flex; align-items: center; gap: 6px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(255,102,0,0.28);">
-                  <span>Send</span> <i class="fa-solid fa-paper-plane"></i>
-                </button>
-              </form>
-
+              <span style="background: rgba(255,255,255,0.22); color:#fff; font-size:0.7rem; padding: 3px 10px; border-radius: 12px; font-weight: 700;">24/7 Live</span>
             </div>
+
+            <!-- Messages stream -->
+            <div id="userChatStream" class="user-chat-stream">
+              <!-- Messages rendered dynamically by app.js -->
+            </div>
+
+            <!-- Quick preset chips -->
+            <div class="user-chat-presets">
+              <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('How to deposit and buy USDT?')">💰 Deposit Help</button>
+              <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('My deposit order is pending approval.')">⏳ Deposit Pending</button>
+              <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('How to sell & withdraw money to UPI?')">💸 Withdrawal Help</button>
+              <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('Need assistance with Special Claim Offer.')">🎁 Claim Offer</button>
+              <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('What is my current account balance?')">💼 Check Balance</button>
+            </div>
+
+            <!-- Input bar -->
+            <form id="formUserSupportChat" class="user-chat-input-bar" onsubmit="FintechApp.handleSendSupportMessage(event)">
+              <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Type a message..." required autocomplete="off">
+              <button type="submit" class="user-chat-send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </form>
+
           </div>
         </section>
+
 
       </div>
 

@@ -1061,41 +1061,47 @@ const FintechApp = {
     if (!container) return;
 
     if (!msgs || msgs.length === 0) {
+      const userName = this.state.currentUser ? this.state.currentUser.name : 'there';
       container.innerHTML = `
-        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--orange-light); color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 8px;">
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--orange-light); color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 10px;">
             <i class="fa-solid fa-headset"></i>
           </div>
-          <strong style="display: block; color: var(--text-dark); font-size: 0.95rem;">How can we help you today?</strong>
-          <p style="font-size: 0.78rem; margin-top: 4px;">Send a message below or pick a quick topic to start chatting with ROTERPAY Master Admin.</p>
+          <strong style="display: block; color: var(--text-dark); font-size: 0.95rem; margin-bottom: 4px;">Hello ${userName}! 👋</strong>
+          <p style="font-size: 0.8rem; color: #64748b; max-width: 240px; margin: 0 auto;">Send a message or tap a quick topic below to start chatting with ROTERPAY Support.</p>
         </div>
       `;
       return;
     }
+
+    const userInitial = this.state.currentUser ? this.state.currentUser.name.charAt(0).toUpperCase() : 'U';
 
     container.innerHTML = msgs.map(m => {
       const isAdmin = m.sender === 'admin';
       const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       if (isAdmin) {
         return `
-          <div style="display: flex; gap: 8px; align-items: flex-start; max-width: 85%;">
-            <img src="/images/roterpay-logo.png" alt="Admin" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid #ffe3d1; flex-shrink: 0; margin-top: 2px;">
+          <div class="uc-bubble-row admin-msg">
+            <img src="/images/roterpay-logo.png" class="uc-avatar-admin" alt="Admin" onerror="this.style.display='none'">
             <div>
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--primary-orange); margin-bottom: 2px; display: block;">Master Admin • Support Desk</span>
-              <div style="background: #ffffff; color: var(--text-dark); padding: 10px 14px; border-radius: 4px 16px 16px 16px; border: 1px solid var(--orange-border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-size: 0.88rem; line-height: 1.45; word-break: break-word;">
+              <div class="uc-bubble-sender">ROTERPAY Support</div>
+              <div class="uc-bubble admin">
                 ${m.message}
+                <div class="uc-bubble-time">${timeStr}</div>
               </div>
-              <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr}</span>
             </div>
           </div>
         `;
       } else {
         return `
-          <div style="display: flex; flex-direction: column; align-items: flex-end; max-width: 85%; margin-left: auto;">
-            <div style="background: linear-gradient(135deg, #ff6600, #ea580c); color: #ffffff; padding: 10px 14px; border-radius: 16px 16px 4px 16px; font-size: 0.88rem; line-height: 1.45; word-break: break-word; box-shadow: 0 4px 12px rgba(255,102,0,0.22);">
-              ${m.message}
+          <div class="uc-bubble-row user-msg">
+            <div class="uc-avatar-user">${userInitial}</div>
+            <div>
+              <div class="uc-bubble user">
+                ${m.message}
+                <div class="uc-bubble-time">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.58rem;"></i></div>
+              </div>
             </div>
-            <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; display: block;">${timeStr} ✓</span>
           </div>
         `;
       }
