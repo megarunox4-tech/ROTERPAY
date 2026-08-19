@@ -1593,7 +1593,9 @@ app.post('/api/support/typing', (req, res) => {
 // Presence & typing check endpoint
 app.get('/api/support/presence', (req, res) => {
   const userId = req.query.userId;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (!userId || userId === 'GUEST' || userId === 'guest') {
+    return res.json({ isUserOnline: false, isUserTyping: false, isAdminOnline: false, isAdminTyping: false });
+  }
   const p = getOrCreatePresence(userId);
   const now = Date.now();
   const isAdminOnline = (now - adminGlobalLastSeen) < 10000;
@@ -1612,7 +1614,9 @@ app.get('/api/support/presence', (req, res) => {
 app.get('/api/support/messages', async (req, res) => {
   try {
     const userId = req.query.userId;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    if (!userId || userId === 'GUEST' || userId === 'guest' || String(userId).toLowerCase().startsWith('guest')) {
+      return res.json([]);
+    }
 
     const raw = await db.queryAll(
       `SELECT id, userid, username, sender, message, isread, timestamp
@@ -1636,7 +1640,7 @@ app.get('/api/support/messages', async (req, res) => {
   }
 });
 
-// Send message from App User
+// Send message from App User (Registered users only)
 app.post('/api/support/send', async (req, res) => {
   try {
     const { userId, userName, message } = req.body;
@@ -1644,13 +1648,25 @@ app.post('/api/support/send', async (req, res) => {
       return res.status(400).json({ error: 'userId and message are required' });
     }
 
+    // Strict Guest Check: Only registered users can chat
+    const cleanId = String(userId).trim();
+    if (cleanId === 'GUEST' || cleanId.toLowerCase() === 'guest' || cleanId.toLowerCase().startsWith('guest')) {
+      return res.status(403).json({ error: 'Please log in to your account. Guest user chat is not permitted.' });
+    }
+
+    // Verify user exists in database
+    const user = await db.queryOne('SELECT id, name FROM users WHERE id = $1', [cleanId]);
+    if (!user) {
+      return res.status(403).json({ error: 'User account not found. Please log in.' });
+    }
+
     const cleanMsg = message.trim();
-    const cleanName = userName ? userName.trim() : 'User';
+    const cleanName = user.name || userName || 'User';
 
     const result = await db.queryOne(
       `INSERT INTO support_messages (userId, userName, sender, message, isRead, timestamp)
        VALUES ($1, $2, 'user', $3, 0, NOW()) RETURNING *`,
-      [userId, cleanName, cleanMsg]
+      [cleanId, cleanName, cleanMsg]
     );
 
     res.json({ success: true, message: result });
@@ -1687,7 +1703,7 @@ app.post('/api/admin/support/reply', requireAdminAuth, async (req, res) => {
   }
 });
 
-// Admin: Fetch all active user support chat threads
+// Admin: Fetch all active user support chat threads (Registered users only)
 app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
   try {
     adminGlobalLastSeen = Date.now();
@@ -1700,6 +1716,7 @@ app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
         MAX(sm.timestamp) as lasttimestamp,
         COUNT(CASE WHEN sm.sender = 'user' AND sm.isread = 0 THEN 1 END) as unreadcount
       FROM support_messages sm
+      WHERE sm.userid != 'GUEST' AND sm.userid != 'guest' AND sm.userid NOT ILIKE 'guest%'
       GROUP BY sm.userid
       ORDER BY MAX(sm.timestamp) DESC
     `);
