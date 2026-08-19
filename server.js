@@ -1561,10 +1561,22 @@ app.get('/api/support/messages', async (req, res) => {
     const userId = req.query.userId;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
 
-    const messages = await db.queryAll(
-      `SELECT * FROM support_messages WHERE userId = $1 ORDER BY timestamp ASC`,
+    const raw = await db.queryAll(
+      `SELECT id, userid, username, sender, message, isread, timestamp
+        FROM support_messages 
+        WHERE userid = $1 
+        ORDER BY timestamp ASC`,
       [userId]
     );
+    const messages = raw.map(m => ({
+      id: m.id,
+      userId: m.userid || m.userId,
+      userName: m.username || m.userName || 'User',
+      sender: m.sender,
+      message: m.message,
+      isRead: m.isread !== undefined ? m.isread : m.isRead,
+      timestamp: m.timestamp
+    }));
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch messages' });
@@ -1625,18 +1637,26 @@ app.post('/api/admin/support/reply', requireAdminAuth, async (req, res) => {
 // Admin: Fetch all active user support chat threads
 app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
   try {
-    const threads = await db.queryAll(`
+    const rawThreads = await db.queryAll(`
       SELECT 
-        sm.userId,
-        MAX(sm.userName) as userName,
-        (SELECT message FROM support_messages WHERE userId = sm.userId ORDER BY timestamp DESC LIMIT 1) as lastMessage,
-        (SELECT sender FROM support_messages WHERE userId = sm.userId ORDER BY timestamp DESC LIMIT 1) as lastSender,
-        MAX(sm.timestamp) as lastTimestamp,
-        COUNT(CASE WHEN sm.sender = 'user' AND sm.isRead = 0 THEN 1 END) as unreadCount
+        sm.userid,
+        MAX(sm.username) as username,
+        (SELECT message FROM support_messages WHERE userid = sm.userid ORDER BY timestamp DESC LIMIT 1) as lastmessage,
+        (SELECT sender FROM support_messages WHERE userid = sm.userid ORDER BY timestamp DESC LIMIT 1) as lastsender,
+        MAX(sm.timestamp) as lasttimestamp,
+        COUNT(CASE WHEN sm.sender = 'user' AND sm.isread = 0 THEN 1 END) as unreadcount
       FROM support_messages sm
-      GROUP BY sm.userId
-      ORDER BY lastTimestamp DESC
+      GROUP BY sm.userid
+      ORDER BY MAX(sm.timestamp) DESC
     `);
+    const threads = rawThreads.map(t => ({
+      userId: t.userid,
+      userName: t.username || 'App User',
+      lastMessage: t.lastmessage || '',
+      lastSender: t.lastsender || 'user',
+      lastTimestamp: t.lasttimestamp,
+      unreadCount: parseInt(t.unreadcount || 0)
+    }));
     res.json(threads);
   } catch (err) {
     console.error('Support threads error:', err);

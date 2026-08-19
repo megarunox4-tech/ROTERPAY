@@ -2,11 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Master PC Admin Dashboard | Fintech Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1e2d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Master Admin Portal | ROTERPAY</title>
 
-  <!-- Favicon -->
+  <!-- PWA Manifest & Favicon -->
+  <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/images/roterpay-vector-logo.svg">
+  <link rel="apple-touch-icon" href="/images/roterpay-logo.png">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -580,6 +586,30 @@
     /* Desktop: hide back btn */
     @media screen and (min-width: 769px) {
       .wa-chat-back-btn { display: none !important; }
+    }
+
+    /* General mobile fixes */
+    @media screen and (max-width: 640px) {
+      .auth-box { width: 92%; padding: 2rem 1.25rem; }
+      .metrics-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+      .form-grid-2 { grid-template-columns: 1fr; gap: 8px; }
+      .header-title h1 { font-size: 1.1rem; }
+      .status-badge { display: none; }
+      #currentDateDisplay { display: none; }
+      .admin-header { padding: 0.75rem 1rem; }
+      .header-right { gap: 6px; }
+      .content-body { padding: 0.75rem; }
+      .panel-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 1rem; }
+      .panel-header > div { width: 100%; flex-wrap: wrap; }
+      .panel-header input, .panel-header select { width: 100% !important; }
+      .table th, .table td { padding: 8px 10px; font-size: 0.8rem; }
+      .modal-box { width: 94%; max-height: 92vh; border-radius: 14px; }
+      .modal-body { padding: 1rem; }
+      .modal-footer { padding: 0.75rem 1rem; flex-direction: column-reverse; }
+      .modal-footer button { width: 100%; padding: 10px; }
+      .btn { padding: 7px 10px; font-size: 0.78rem; }
+      /* Support chat mobile full height */
+      .wa-messenger-shell { height: calc(100vh - 110px); border-radius: 12px; }
     }
   </style>
 </head>

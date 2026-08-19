@@ -1026,6 +1026,11 @@ const FintechApp = {
       view.classList.toggle('active', view.id === `tab-${tabId}`);
     });
 
+    const botWidget = document.getElementById('floatingBotWidget');
+    if (botWidget) {
+      botWidget.style.display = tabId === 'support' ? 'none' : 'flex';
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (tabId === 'support') {

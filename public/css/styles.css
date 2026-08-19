@@ -1825,13 +1825,25 @@ input, select, textarea, button {
    WHATSAPP-STYLE USER LIVE SUPPORT CHAT
    ============================================= */
 
-/* The full-page support tab */
+/* The full-page support tab: HIDDEN by default, only visible when active */
 #tab-support {
-  display: flex;
+  display: none !important;
+}
+
+#tab-support.active {
+  display: flex !important;
   flex-direction: column;
-  height: calc(100vh - 130px);
+  height: calc(100dvh - 165px);
+  max-height: calc(100vh - 165px);
   padding: 0 !important;
   overflow: hidden;
+  margin-bottom: 20px;
+}
+
+/* Automatically hide floating chat widget when support tab is active */
+body:has(#tab-support.active) .floating-bot-widget,
+.floating-bot-widget.hidden {
+  display: none !important;
 }
 
 /* Chat container card */
