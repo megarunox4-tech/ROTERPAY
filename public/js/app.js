@@ -1052,11 +1052,11 @@ const FintechApp = {
       ]);
 
       let isAdminTyping = false;
-      let isAdminOnline = true;
+      let isAdminOnline = false;
       if (pRes && pRes.ok) {
         const presence = await pRes.json();
         isAdminTyping = !!presence.isAdminTyping;
-        isAdminOnline = presence.isAdminOnline !== undefined ? !!presence.isAdminOnline : true;
+        isAdminOnline = !!presence.isAdminOnline;
       }
 
       const statusSpan = document.getElementById('userChatAgentStatusText');
@@ -1068,7 +1068,7 @@ const FintechApp = {
         } else if (isAdminOnline) {
           statusSpan.innerHTML = '<i class="fa-solid fa-circle" style="font-size:0.45rem; color:#4ade80;"></i> online';
         } else {
-          statusSpan.innerHTML = 'offline';
+          statusSpan.innerHTML = '<span style="color:rgba(255,255,255,0.75);font-size:0.75rem;">offline</span>';
         }
       }
 
@@ -1078,7 +1078,7 @@ const FintechApp = {
 
       if (mRes.ok) {
         const msgs = await mRes.json();
-        this.renderUserChatMessages(msgs, isAdminTyping);
+        this.renderUserChatMessages(msgs, isAdminTyping, isAdminOnline);
       }
 
       if (document.getElementById('tab-support')?.classList.contains('active')) {
@@ -1093,7 +1093,7 @@ const FintechApp = {
     }
   },
 
-  renderUserChatMessages(msgs, isAdminTyping = false) {
+  renderUserChatMessages(msgs, isAdminTyping = false, isAdminOnline = false) {
     const container = document.getElementById('userChatStream');
     if (!container) return;
 
@@ -1138,6 +1138,19 @@ const FintechApp = {
             </div>
           `;
         } else {
+          // Authentic WhatsApp 3-state tick system
+          let tickIcon = '';
+          if (isSeen) {
+            // Read by Admin -> Double Blue Ticks
+            tickIcon = `<i class="fa-solid fa-check-double" style="font-size:0.65rem; color:#53bdeb;" title="Read"></i>`;
+          } else if (isAdminOnline) {
+            // Admin is Online -> Double Gray Ticks (Delivered)
+            tickIcon = `<i class="fa-solid fa-check-double" style="font-size:0.65rem; color:#8696a0;" title="Delivered"></i>`;
+          } else {
+            // Admin is Offline (Data Band) -> Single Gray Tick (Sent)
+            tickIcon = `<i class="fa-solid fa-check" style="font-size:0.65rem; color:#8696a0;" title="Sent (Admin offline)"></i>`;
+          }
+
           return `
             <div class="uc-bubble-row user-msg">
               <div class="uc-bubble user" id="msg-bubble-${m.id}"
@@ -1147,7 +1160,7 @@ const FintechApp = {
                    ontouchmove="FintechApp.handleMsgTouchCancel()">
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">
-                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.65rem; color:${isSeen ? '#53bdeb' : '#8696a0'};" title="${isSeen ? 'Read' : 'Delivered'}"></i>
+                  ${timeStr} ${tickIcon}
                 </div>
               </div>
             </div>

@@ -2906,7 +2906,7 @@
               }
             }
 
-            this.renderAdminChatStream(msgs, isUserTyping);
+            this.renderAdminChatStream(msgs, isUserTyping, isUserOnline);
           }
 
           await this.apiFetch('/api/support/mark-read', {
@@ -2918,7 +2918,7 @@
         }
       },
 
-      renderAdminChatStream(msgs, isUserTyping = false) {
+      renderAdminChatStream(msgs, isUserTyping = false, isUserOnline = false) {
         const container = document.getElementById('adminChatStream');
         if (!container) return;
 
@@ -2950,6 +2950,15 @@
           const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
           
           if (isAdmin) {
+            let tickIcon = '';
+            if (isSeen) {
+              tickIcon = `<i class="fa-solid fa-check-double" style="font-size:0.6rem; color: #bbf7d0;" title="Read by user"></i>`;
+            } else if (isUserOnline) {
+              tickIcon = `<i class="fa-solid fa-check-double" style="font-size:0.6rem; color: rgba(255,255,255,0.7);" title="Delivered (User online)"></i>`;
+            } else {
+              tickIcon = `<i class="fa-solid fa-check" style="font-size:0.6rem; color: rgba(255,255,255,0.7);" title="Sent (User offline)"></i>`;
+            }
+
             return `
               <div class="wa-bubble-row admin">
                 <div class="wa-admin-avatar-sm" title="Admin"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
@@ -2961,7 +2970,7 @@
                        ontouchmove="AdminPortal.handleMsgTouchCancel()">
                     <div>${m.message}</div>
                     <div class="wa-bubble-meta">
-                      ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem; color: ${isSeen ? '#bbf7d0' : 'rgba(255,255,255,0.65)'};" title="${isSeen ? 'Read by user' : 'Delivered'}"></i>
+                      ${timeStr} ${tickIcon}
                     </div>
                   </div>
                 </div>
