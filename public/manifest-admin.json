@@ -1,0 +1,25 @@
+{
+  "name": "ROTERPAY Master Admin & Chat",
+  "short_name": "ROTER Admin",
+  "description": "Master Administrator Desk & WhatsApp Live Support Portal",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1e2d",
+  "theme_color": "#ff6600",
+  "icons": [
+    {
+      "src": "/images/roterpay-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/roterpay-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

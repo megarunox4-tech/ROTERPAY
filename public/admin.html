@@ -10,7 +10,7 @@
   <title>Master Admin Portal | ROTERPAY</title>
 
   <!-- PWA Manifest & Favicon -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest-admin.json">
   <link rel="icon" type="image/svg+xml" href="/images/roterpay-vector-logo.svg">
   <link rel="apple-touch-icon" href="/images/roterpay-logo.png">
 
@@ -878,6 +878,9 @@
           </div>
         </div>
         <button type="submit" class="btn-orange-full">Authenticate Master Admin</button>
+        <button type="button" onclick="AdminPortal.promptInstallPWA()" style="width: 100%; margin-top: 10px; background: #fff7ed; border: 1.5px dashed var(--primary-orange); color: var(--primary-orange); padding: 9px; border-radius: 10px; font-weight: 700; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-download"></i> 📲 Install ROTER Admin App
+        </button>
       </form>
     </div>
   </div>
@@ -913,6 +916,9 @@
       </ul>
 
       <div class="sidebar-footer" style="padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" onclick="AdminPortal.promptInstallPWA()" style="width: 100%; background: rgba(255, 102, 0, 0.15); color: #ff6600; border: 1.5px solid rgba(255, 102, 0, 0.4); padding: 9px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-solid fa-mobile-screen-button"></i> 📲 Download Phone App
+        </button>
         <button class="btn-lock" id="btnSidebarLogout" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; padding: 10px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35); transition: transform 0.15s ease;">
           <i class="fa-solid fa-right-from-bracket"></i> Logout Admin
         </button>
@@ -933,7 +939,10 @@
           </button>
           <h1 id="pageTitleHeading">Dashboard Overview</h1>
         </div>
-        <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
+        <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" id="btnHeaderInstallApp" onclick="AdminPortal.promptInstallPWA()" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: none; padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16,185,129,0.3);">
+            <i class="fa-solid fa-download"></i> 📱 Install App
+          </button>
           <div class="status-badge"><span class="dot-live"></span> Master Admin</div>
           <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay"></span>
           <button id="btnHeaderSecurity" style="background: rgba(255, 102, 0, 0.12); color: var(--primary-orange); border: 1.5px solid rgba(255, 102, 0, 0.35); padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
@@ -3225,8 +3234,82 @@
           input.value = text;
           this.handleSendAdminReply();
         }
+      },
+
+      // PWA Install Handlers for Mobile Phone Download
+      promptInstallPWA() {
+        const modal = document.getElementById('modalAdminPwaInstall');
+        const content = document.getElementById('pwaInstallPromptContent');
+        const btnInstall = document.getElementById('btnTriggerPwaInstall');
+        if (!modal) return;
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isStandalone) {
+          if (content) content.innerHTML = '<div style="color:#10b981;font-weight:700;text-align:center;"><i class="fa-solid fa-circle-check" style="font-size:1.4rem;"></i><br>ROTER Admin App is already installed on your device!</div>';
+          if (btnInstall) btnInstall.style.display = 'none';
+        } else if (window.deferredAdminPrompt) {
+          if (content) content.innerHTML = '<div><strong>Instant 1-Tap Installation:</strong><br>Tap the "Install Now" button below to add the official ROTER Admin Desk icon to your phone home screen.</div>';
+          if (btnInstall) btnInstall.style.display = 'block';
+        } else if (isIOS) {
+          if (content) content.innerHTML = '<div><strong>Install on iPhone / iPad (Safari):</strong><ol style="margin:8px 0 0 16px;padding:0;"><li>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket" style="color:#0284c7;"></i> at the bottom of Safari.</li><li>Scroll down and tap <strong>"Add to Home Screen" <i class="fa-solid fa-plus-square"></i></strong>.</li><li>Tap <strong>Add</strong> at the top right.</li></ol></div>';
+          if (btnInstall) btnInstall.style.display = 'none';
+        } else {
+          if (content) content.innerHTML = '<div><strong>Install on Android / Chrome:</strong><ol style="margin:8px 0 0 16px;padding:0;"><li>Tap the <strong>3-dots menu <i class="fa-solid fa-ellipsis-vertical"></i></strong> at the top right of Chrome.</li><li>Tap <strong>"Install App"</strong> or <strong>"Add to Home screen"</strong>.</li><li>Confirm to download the Admin app icon.</li></ol></div>';
+          if (btnInstall) btnInstall.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+      },
+
+      async executePWAInstall() {
+        if (window.deferredAdminPrompt) {
+          window.deferredAdminPrompt.prompt();
+          const { outcome } = await window.deferredAdminPrompt.userChoice;
+          if (outcome === 'accepted') {
+            document.getElementById('modalAdminPwaInstall').style.display = 'none';
+          }
+          window.deferredAdminPrompt = null;
+        }
       }
     };
+
+    // Listen for PWA BeforeInstallPrompt Event on Mobile / Desktop
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredAdminPrompt = e;
+      const headerBtn = document.getElementById('btnHeaderInstallApp');
+      if (headerBtn) headerBtn.style.display = 'flex';
+    });
+
+    // Register Service Worker for Offline / App Capabilities
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW registration error:', err));
+      });
+    }
   </script>
+
+  <!-- PWA Install Modal for Admin App -->
+  <div id="modalAdminPwaInstall" class="wa-action-sheet-backdrop" style="display: none;" onclick="document.getElementById('modalAdminPwaInstall').style.display='none'">
+    <div class="wa-action-sheet" style="max-width: 420px; border-radius: 18px;" onclick="event.stopPropagation()">
+      <div style="text-align: center; padding: 10px 0;">
+        <img src="/images/roterpay-logo.png" style="width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 15px rgba(255,102,0,0.3); margin-bottom: 10px;">
+        <h3 style="margin: 0 0 4px 0; color: #1e293b; font-size: 1.15rem;">Download ROTER Admin App</h3>
+        <p style="margin: 0; font-size: 0.82rem; color: #64748b;">Install Master Admin Portal on your phone home screen for 24/7 fast access and live notifications.</p>
+      </div>
+      <div id="pwaInstallPromptContent" style="background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.84rem; color: #334155; line-height: 1.5;">
+        <!-- Dynamic instructions for Android / iOS -->
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" id="btnTriggerPwaInstall" class="btn-orange-full" style="flex: 1; padding: 12px; font-size: 0.92rem;" onclick="AdminPortal.executePWAInstall()">
+          <i class="fa-solid fa-download"></i> Install Now
+        </button>
+        <button type="button" class="wa-action-cancel" style="flex: 1; padding: 12px;" onclick="document.getElementById('modalAdminPwaInstall').style.display='none'">Close</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
