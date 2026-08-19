@@ -1104,6 +1104,8 @@ const FintechApp = {
     let html = msgs.map(m => {
       const isAdmin = m.sender === 'admin';
       const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
       if (isAdmin) {
         return `
           <div class="uc-bubble-row admin-msg">
@@ -1111,7 +1113,7 @@ const FintechApp = {
             <div class="uc-bubble-content">
               <div class="uc-bubble-sender">ROTERPAY Support</div>
               <div class="uc-bubble admin">
-                ${m.message}
+                <div>${m.message}</div>
                 <div class="uc-bubble-time">${timeStr}</div>
               </div>
             </div>
@@ -1123,8 +1125,14 @@ const FintechApp = {
             <div class="uc-avatar-user">${userInitial}</div>
             <div class="uc-bubble-content">
               <div class="uc-bubble user">
-                ${m.message}
-                <div class="uc-bubble-time">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.58rem;"></i></div>
+                <div>${m.message}</div>
+                <div class="uc-bubble-time">
+                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.58rem;"></i>
+                  <div class="uc-bubble-actions">
+                    <button type="button" class="uc-msg-btn" onclick="FintechApp.editUserMessage(${m.id}, '${escapedText}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="uc-msg-btn del" onclick="FintechApp.deleteUserMessage(${m.id})" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1149,6 +1157,42 @@ const FintechApp = {
 
     container.innerHTML = html;
     container.scrollTop = container.scrollHeight;
+  },
+
+  async editUserMessage(id, oldText) {
+    const newText = prompt('Edit your message:', oldText);
+    if (newText === null) return;
+    const clean = newText.trim();
+    if (!clean || clean === oldText.trim()) return;
+
+    try {
+      const res = await fetch('/api/support/message/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, message: clean, editor: 'User' })
+      });
+      if (res.ok) {
+        await this.loadSupportMessages();
+      }
+    } catch (e) {
+      console.warn('Edit user message error:', e);
+    }
+  },
+
+  async deleteUserMessage(id) {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    try {
+      const res = await fetch('/api/support/message/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, editor: 'User' })
+      });
+      if (res.ok) {
+        await this.loadSupportMessages();
+      }
+    } catch (e) {
+      console.warn('Delete user message error:', e);
+    }
   },
 
   sendUserTypingSignal() {

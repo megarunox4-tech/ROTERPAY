@@ -531,6 +531,28 @@
     }
     .wa-bubble.user .wa-bubble-meta { color: #64748b; justify-content: flex-start; }
     .wa-bubble.admin .wa-bubble-meta { color: rgba(255,255,255,0.9); justify-content: flex-end; }
+    
+    .wa-bubble-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: 8px;
+      opacity: 0.75;
+    }
+    .wa-bubble-actions:hover { opacity: 1; }
+    .wa-msg-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 0.68rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .wa-msg-btn:hover { background: rgba(0,0,0,0.12); }
+    .wa-bubble.admin .wa-msg-btn:hover { background: rgba(255,255,255,0.25); }
+    .wa-msg-btn.del:hover { color: #ef4444 !important; }
     .wa-sender-name {
       font-size: 0.72rem;
       font-weight: 700;
@@ -1149,6 +1171,9 @@
                 <div class="wa-chat-actions" id="activeThreadActions" style="display: none;">
                   <button class="wa-chat-action-btn" id="btnActiveUserAdjustBal" title="Adjust Balance">
                     <i class="fa-solid fa-wallet"></i>
+                  </button>
+                  <button class="wa-chat-action-btn" onclick="AdminPortal.clearActiveThread()" title="Clear Chat History" style="color: #fecdd3;">
+                    <i class="fa-solid fa-trash-can"></i>
                   </button>
                   <button class="wa-chat-action-btn" onclick="AdminPortal.loadActiveThreadMessages()" title="Refresh">
                     <i class="fa-solid fa-rotate-right"></i>
@@ -2750,14 +2775,22 @@
         let html = msgs.map(m => {
           const isAdmin = m.sender === 'admin';
           const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          
           if (isAdmin) {
             return `
               <div class="wa-bubble-row admin">
                 <div class="wa-admin-avatar-sm" title="Admin"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
                 <div class="wa-bubble-content">
                   <div class="wa-bubble admin">
-                    ${m.message}
-                    <div class="wa-bubble-meta">${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem;"></i></div>
+                    <div>${m.message}</div>
+                    <div class="wa-bubble-meta">
+                      ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem;"></i>
+                      <div class="wa-bubble-actions">
+                        <button type="button" class="wa-msg-btn" onclick="AdminPortal.editMessage(${m.id}, '${escapedText}')" title="Edit Message"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="wa-msg-btn del" onclick="AdminPortal.deleteMessage(${m.id})" title="Delete Message"><i class="fa-solid fa-trash-can"></i></button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2769,8 +2802,14 @@
                 <div class="wa-bubble-content">
                   <div class="wa-sender-name">${m.userName || 'App User'} <span style="font-size:0.65rem;font-weight:400;color:#94a3b8;">#${m.userId}</span></div>
                   <div class="wa-bubble user">
-                    ${m.message}
-                    <div class="wa-bubble-meta">${timeStr}</div>
+                    <div>${m.message}</div>
+                    <div class="wa-bubble-meta">
+                      ${timeStr}
+                      <div class="wa-bubble-actions">
+                        <button type="button" class="wa-msg-btn" onclick="AdminPortal.editMessage(${m.id}, '${escapedText}')" title="Edit Message"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="wa-msg-btn del" onclick="AdminPortal.deleteMessage(${m.id})" title="Delete Message"><i class="fa-solid fa-trash-can"></i></button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2832,6 +2871,69 @@
           await this.loadSupportThreads();
         } catch (err) {
           alert(err.message || 'Error sending reply');
+        }
+      },
+
+      async editMessage(id, oldText) {
+        const newText = prompt('Edit Message:', oldText);
+        if (newText === null) return;
+        const clean = newText.trim();
+        if (!clean) return alert('Message cannot be empty');
+        if (clean === oldText.trim()) return;
+
+        try {
+          const res = await this.apiFetch('/api/support/message/edit', {
+            method: 'POST',
+            body: JSON.stringify({ id, message: clean, editor: 'Admin' })
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            return alert(data.error || 'Failed to edit message');
+          }
+          await this.loadActiveThreadMessages();
+          await this.loadSupportThreads();
+        } catch (err) {
+          alert(err.message || 'Error editing message');
+        }
+      },
+
+      async deleteMessage(id) {
+        if (!confirm('Are you sure you want to delete this message?')) return;
+        try {
+          const res = await this.apiFetch('/api/support/message/delete', {
+            method: 'POST',
+            body: JSON.stringify({ id, editor: 'Admin' })
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            return alert(data.error || 'Failed to delete message');
+          }
+          await this.loadActiveThreadMessages();
+          await this.loadSupportThreads();
+        } catch (err) {
+          alert(err.message || 'Error deleting message');
+        }
+      },
+
+      async clearActiveThread() {
+        const userId = this.state.activeSupportUserId;
+        if (!userId) return;
+        const userName = this.state.activeSupportUserName || 'User';
+        if (!confirm(`Are you sure you want to delete ALL messages for ${userName} (#${userId})?`)) return;
+
+        try {
+          const res = await this.apiFetch('/api/admin/support/thread/clear', {
+            method: 'POST',
+            body: JSON.stringify({ userId })
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            return alert(data.error || 'Failed to clear thread');
+          }
+          await this.loadActiveThreadMessages();
+          await this.loadSupportThreads();
+        } catch (err) {
+          alert(err.message || 'Error clearing chat thread');
         }
       },
 

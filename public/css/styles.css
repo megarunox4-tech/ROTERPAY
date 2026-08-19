@@ -2038,6 +2038,28 @@ body:has(#tab-support.active) .floating-bot-widget,
 .uc-bubble.admin .uc-bubble-time { color: #94a3b8; justify-content: flex-start; }
 .uc-bubble.user .uc-bubble-time { color: rgba(255,255,255,0.9); justify-content: flex-end; }
 
+.uc-bubble-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  opacity: 0.7;
+}
+.uc-bubble-actions:hover { opacity: 1; }
+.uc-msg-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.uc-msg-btn:hover { background: rgba(0,0,0,0.12); }
+.uc-bubble.user .uc-msg-btn:hover { background: rgba(255,255,255,0.25); }
+.uc-msg-btn.del:hover { color: #fecdd3 !important; }
+
 /* Quick preset chips tray */
 .user-chat-presets {
   display: flex;

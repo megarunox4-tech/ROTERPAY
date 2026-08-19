@@ -1720,6 +1720,61 @@ app.get('/api/admin/support/threads', requireAdminAuth, async (req, res) => {
   }
 });
 
+// Edit single support message
+app.post('/api/support/message/edit', async (req, res) => {
+  try {
+    const { id, message, editor } = req.body;
+    if (!id || !message || !message.trim()) {
+      return res.status(400).json({ error: 'Message ID and new message are required' });
+    }
+    const cleanMsg = message.trim();
+    
+    const existing = await db.queryOne('SELECT * FROM support_messages WHERE id = $1', [id]);
+    if (!existing) return res.status(404).json({ error: 'Message not found' });
+    
+    const updated = await db.queryOne(
+      'UPDATE support_messages SET message = $1 WHERE id = $2 RETURNING *',
+      [cleanMsg, id]
+    );
+
+    await logAudit('Support Message Edit', `${editor || 'User/Admin'} edited message #${id}: "${cleanMsg.substring(0, Math.min(30, cleanMsg.length))}..."`, req);
+    res.json({ success: true, message: updated });
+  } catch (err) {
+    console.error('Edit support message error:', err);
+    res.status(500).json({ error: 'Failed to edit message' });
+  }
+});
+
+// Delete single support message
+app.post('/api/support/message/delete', async (req, res) => {
+  try {
+    const { id, editor } = req.body;
+    if (!id) return res.status(400).json({ error: 'Message ID is required' });
+    
+    await db.run('DELETE FROM support_messages WHERE id = $1', [id]);
+    await logAudit('Support Message Delete', `${editor || 'User/Admin'} deleted message #${id}`, req);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete support message error:', err);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+});
+
+// Admin: Clear entire chat conversation thread
+app.post('/api/admin/support/thread/clear', requireAdminAuth, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    
+    await db.run('DELETE FROM support_messages WHERE userid = $1', [userId]);
+    await logAudit('Clear Chat Thread', 'Admin cleared chat thread for User ' + userId, req);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Clear chat thread error:', err);
+    res.status(500).json({ error: 'Failed to clear chat thread' });
+  }
+});
+
 // Mark thread as read
 app.post('/api/support/mark-read', async (req, res) => {
   try {
