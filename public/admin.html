@@ -247,7 +247,7 @@
         </div>
         <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
           <div class="status-badge"><span class="dot-live"></span> Master Admin</div>
-          <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay">14/08/2026</span>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay"></span>
           <button id="btnHeaderSecurity" style="background: rgba(255, 102, 0, 0.12); color: var(--primary-orange); border: 1.5px solid rgba(255, 102, 0, 0.35); padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
             <i class="fa-solid fa-key"></i> Password
           </button>
@@ -647,15 +647,13 @@
             <label>Full User Name</label>
             <input type="text" id="addName" class="form-control" placeholder="e.g. Amit Kumar" required>
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label>Mobile Phone Number</label>
-              <input type="tel" id="addPhone" class="form-control" placeholder="e.g. 9876543210" required>
-            </div>
-            <div class="form-group">
-              <label>Password</label>
-              <input type="text" id="addPassword" class="form-control" placeholder="Account Password" value="123" required>
-            </div>
+          <div class="form-group">
+            <label>Mobile Phone Number</label>
+            <input type="tel" id="addPhone" class="form-control" placeholder="Enter mobile phone number" required>
+          </div>
+          <div class="form-group">
+            <label>Login Password</label>
+            <input type="password" id="addPassword" class="form-control" placeholder="Enter user password" required>
           </div>
           <div class="form-group">
             <label>Custom User ID Code (Optional)</label>
@@ -967,6 +965,12 @@
         this.bindMenu();
         this.bindActions();
 
+        // Dynamically set live current date in header
+        const dateEl = document.getElementById('currentDateDisplay');
+        if (dateEl) {
+          dateEl.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
         // Validate admin session with live server check
         const savedToken = sessionStorage.getItem('fintech_admin_token');
         if (savedToken) {
@@ -1185,10 +1189,10 @@
           <tr>
             <td><strong>${u.id}</strong></td>
             <td><strong>${u.name}</strong></td>
-            <td>${u.phone || '9876543210'}</td>
-            <td><code>${u.password || '123'}</code></td>
+            <td>${u.phone || '-'}</td>
+            <td><code>${u.password || '••••••'}</code></td>
             <td>
-              <strong style="color:var(--primary-orange);">₹ ${u.balance.toFixed(2)}</strong>
+              <strong style="color:var(--primary-orange);">₹ ${Number(u.balance || 0).toFixed(2)}</strong>
               <div style="margin-top:4px; display:flex; gap:4px;">
                 <button class="btn btn-secondary btn-adj-fund" data-id="${u.id}" data-action="add" style="padding:2px 8px; font-size:0.72rem; color:#50cd89; font-weight:700;">+ Credit</button>
                 <button class="btn btn-secondary btn-adj-fund" data-id="${u.id}" data-action="deduct" style="padding:2px 8px; font-size:0.72rem; color:#f1416c; font-weight:700;">- Debit</button>
@@ -1215,7 +1219,7 @@
             const target = this.state.users.find(u => u.id === uid);
             if (target) {
               document.getElementById('adjUserId').value = target.id;
-              document.getElementById('adjUserNameDisplay').value = `${target.name} (${target.id}) - Current Bal: ₹${target.balance.toFixed(2)}`;
+              document.getElementById('adjUserNameDisplay').value = `${target.name} (${target.id}) - Current Bal: ₹${Number(target.balance || 0).toFixed(2)}`;
               document.getElementById('adjActionType').value = action;
               document.getElementById('modalAdjustBalance').classList.add('active');
             }
@@ -1240,13 +1244,13 @@
             if (target) {
               document.getElementById('editUidHidden').value = target.id;
               document.getElementById('editName').value = target.name;
-              document.getElementById('editPhone').value = target.phone || '9876543210';
-              document.getElementById('editPassword').value = target.password || '123';
-              document.getElementById('editBal').value = target.balance;
+              document.getElementById('editPhone').value = target.phone || '';
+              document.getElementById('editPassword').value = target.password || '';
+              document.getElementById('editBal').value = target.balance || 0;
               document.getElementById('editScore').value = target.scorePoints || 0;
-              document.getElementById('editDep').value = target.deposit;
-              document.getElementById('editWith').value = target.withdrawal;
-              document.getElementById('editComm').value = target.commission;
+              document.getElementById('editDep').value = target.deposit || 0;
+              document.getElementById('editWith').value = target.withdrawal || 0;
+              document.getElementById('editComm').value = target.commission || 0;
               document.getElementById('modalEditUser').classList.add('active');
             }
           });
