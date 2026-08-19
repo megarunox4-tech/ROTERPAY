@@ -1597,25 +1597,31 @@
                 <button type="button" class="user-chat-back-icon-btn" onclick="FintechApp.switchAppTab(FintechApp.state.previousTab || 'home')" title="Back">
                   <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <img src="/images/roterpay-logo.png" alt="Support" class="user-chat-agent-avatar" onerror="this.style.display='none'">
+                <div class="user-chat-avatar-wrap">
+                  <img src="/images/roterpay-logo.png" alt="Support" class="user-chat-agent-avatar" onerror="this.src='/images/roterpay-vector-logo.svg'">
+                  <span class="user-chat-online-badge" id="userChatOnlineDot"></span>
+                </div>
                 <div class="user-chat-agent-info">
                   <strong>ROTERPAY Support</strong>
-                  <span><i class="fa-solid fa-circle text-emerald" style="font-size:0.5rem;"></i> Online • Live Desk</span>
+                  <span id="userChatAgentStatusText"><i class="fa-solid fa-circle" style="font-size:0.45rem; color:#4ade80;"></i> online</span>
                 </div>
               </div>
               <div class="user-chat-header-right">
                 <button type="button" class="user-chat-refresh-icon-btn" onclick="FintechApp.loadSupportMessages()" title="Refresh Chat">
                   <i class="fa-solid fa-rotate-right"></i>
                 </button>
+                <button type="button" class="user-chat-clear-icon-btn" onclick="FintechApp.clearUserChat()" title="Clear Chat">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
               </div>
             </div>
 
-            <!-- Messages Stream (Full Vertical Scroll) -->
+            <!-- Messages Stream (WhatsApp Wallpaper Background) -->
             <div id="userChatStream" class="user-chat-stream">
-              <!-- Messages rendered dynamically by app.js -->
+              <!-- Rendered dynamically by FintechApp.renderUserChatMessages() -->
             </div>
 
-            <!-- Quick Preset Chips -->
+            <!-- WhatsApp Quick Preset Chips -->
             <div class="user-chat-presets">
               <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('How to deposit and buy USDT?')">💰 Deposit Help</button>
               <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('My deposit order is pending approval.')">⏳ Deposit Pending</button>
@@ -1624,10 +1630,18 @@
               <button type="button" class="uc-preset-chip" onclick="FintechApp.sendPresetMsg('What is my current account balance?')">💼 Check Balance</button>
             </div>
 
-            <!-- Chat Input Form Bar -->
+            <!-- WhatsApp Bottom Input Bar -->
             <form id="formUserSupportChat" class="user-chat-input-bar" onsubmit="FintechApp.handleSendSupportMessage(event)">
-              <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Type a message to Admin..." required autocomplete="off" oninput="FintechApp.sendUserTypingSignal()">
-              <button type="submit" class="user-chat-send-btn" title="Send">
+              <div class="user-chat-input-pill">
+                <button type="button" class="user-chat-input-icon" title="Emoji">
+                  <i class="fa-regular fa-face-smile"></i>
+                </button>
+                <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Message" required autocomplete="off" oninput="FintechApp.sendUserTypingSignal()">
+                <button type="button" class="user-chat-input-icon" title="Attach" onclick="document.getElementById('inputUserChatMsg').focus()">
+                  <i class="fa-solid fa-paperclip"></i>
+                </button>
+              </div>
+              <button type="submit" class="user-chat-send-btn" title="Send Message">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>
             </form>

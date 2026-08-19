@@ -1052,18 +1052,28 @@ const FintechApp = {
       ]);
 
       let isAdminTyping = false;
+      let isAdminOnline = true;
       if (pRes && pRes.ok) {
         const presence = await pRes.json();
         isAdminTyping = !!presence.isAdminTyping;
+        isAdminOnline = presence.isAdminOnline !== undefined ? !!presence.isAdminOnline : true;
       }
 
-      const infoSpan = document.querySelector('.user-chat-agent-info span');
-      if (infoSpan) {
+      const statusSpan = document.getElementById('userChatAgentStatusText');
+      const dotBadge = document.getElementById('userChatOnlineDot');
+
+      if (statusSpan) {
         if (isAdminTyping) {
-          infoSpan.innerHTML = '<span class="uc-typing-text"><i class="fa-solid fa-pen-nib"></i> Support is typing...</span>';
+          statusSpan.innerHTML = '<span class="uc-typing-text"><i class="fa-solid fa-pen-nib"></i> typing...</span>';
+        } else if (isAdminOnline) {
+          statusSpan.innerHTML = '<i class="fa-solid fa-circle" style="font-size:0.45rem; color:#4ade80;"></i> online';
         } else {
-          infoSpan.innerHTML = '<i class="fa-solid fa-circle" style="font-size:0.5rem; color:#4ade80;"></i> Online • Live Desk';
+          statusSpan.innerHTML = 'offline';
         }
+      }
+
+      if (dotBadge) {
+        dotBadge.style.display = isAdminOnline ? 'block' : 'none';
       }
 
       if (mRes.ok) {
@@ -1085,49 +1095,48 @@ const FintechApp = {
     const container = document.getElementById('userChatStream');
     if (!container) return;
 
+    let html = `
+      <div class="wa-date-pill"><span>TODAY</span></div>
+      <div class="wa-e2e-pill">
+        <i class="fa-solid fa-lock" style="font-size:0.7rem; color:#ff6600;"></i>
+        <span>Messages are end-to-end encrypted with ROTERPAY Helpdesk.</span>
+      </div>
+    `;
+
     if (!msgs || msgs.length === 0) {
       const userName = this.state.currentUser ? this.state.currentUser.name : 'there';
-      container.innerHTML = `
-        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-          <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--orange-light); color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 10px;">
+      html += `
+        <div style="text-align: center; padding: 2rem 1rem; color: #667781;">
+          <div style="width: 54px; height: 54px; border-radius: 50%; background: #ffffff; color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <i class="fa-solid fa-headset"></i>
           </div>
-          <strong style="display: block; color: var(--text-dark); font-size: 0.95rem; margin-bottom: 4px;">Hello ${userName}! 👋</strong>
-          <p style="font-size: 0.8rem; color: #64748b; max-width: 240px; margin: 0 auto;">Send a message or tap a quick topic below to start chatting with ROTERPAY Support.</p>
+          <strong style="display: block; color: #111b21; font-size: 0.95rem; margin-bottom: 4px;">Hello ${userName}! 👋</strong>
+          <p style="font-size: 0.8rem; color: #667781; max-width: 260px; margin: 0 auto;">Ask questions about Deposits, Withdrawals or Claims. We are online to help you 24/7.</p>
         </div>
       `;
-      return;
-    }
+    } else {
+      html += msgs.map(m => {
+        const isAdmin = m.sender === 'admin';
+        const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-    const userInitial = this.state.currentUser ? this.state.currentUser.name.charAt(0).toUpperCase() : 'U';
-
-    let html = msgs.map(m => {
-      const isAdmin = m.sender === 'admin';
-      const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-      const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-      if (isAdmin) {
-        return `
-          <div class="uc-bubble-row admin-msg">
-            <img src="/images/roterpay-logo.png" class="uc-avatar-admin" alt="Admin" onerror="this.style.display='none'">
-            <div class="uc-bubble-content">
-              <div class="uc-bubble-sender">ROTERPAY Support</div>
+        if (isAdmin) {
+          return `
+            <div class="uc-bubble-row admin-msg">
               <div class="uc-bubble admin">
+                <div class="uc-bubble-sender">ROTERPAY Support <i class="fa-solid fa-circle-check" style="color:#00a884; font-size:0.65rem;"></i></div>
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">${timeStr}</div>
               </div>
             </div>
-          </div>
-        `;
-      } else {
-        return `
-          <div class="uc-bubble-row user-msg">
-            <div class="uc-avatar-user">${userInitial}</div>
-            <div class="uc-bubble-content">
+          `;
+        } else {
+          return `
+            <div class="uc-bubble-row user-msg">
               <div class="uc-bubble user">
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">
-                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.58rem;"></i>
+                  ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.65rem; color:#53bdeb;"></i>
                   <div class="uc-bubble-actions">
                     <button type="button" class="uc-msg-btn" onclick="FintechApp.editUserMessage(${m.id}, '${escapedText}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" class="uc-msg-btn del" onclick="FintechApp.deleteUserMessage(${m.id})" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
@@ -1135,21 +1144,18 @@ const FintechApp = {
                 </div>
               </div>
             </div>
-          </div>
-        `;
-      }
-    }).join('');
+          `;
+        }
+      }).join('');
+    }
 
     if (isAdminTyping) {
       html += `
         <div class="uc-bubble-row admin-msg">
-          <img src="/images/roterpay-logo.png" class="uc-avatar-admin" alt="Admin" onerror="this.style.display='none'">
-          <div class="uc-bubble-content">
-            <div class="uc-typing-bubble" title="ROTERPAY Support is typing...">
-              <span class="uc-dot"></span>
-              <span class="uc-dot"></span>
-              <span class="uc-dot"></span>
-            </div>
+          <div class="uc-typing-bubble" title="ROTERPAY Support is typing...">
+            <span class="uc-dot"></span>
+            <span class="uc-dot"></span>
+            <span class="uc-dot"></span>
           </div>
         </div>
       `;
@@ -1192,6 +1198,21 @@ const FintechApp = {
       }
     } catch (e) {
       console.warn('Delete user message error:', e);
+    }
+  },
+
+  async clearUserChat() {
+    const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
+    if (!confirm('Clear all your chat messages?')) return;
+    try {
+      await fetch('/api/admin/support/thread/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      await this.loadSupportMessages();
+    } catch (e) {
+      console.warn('Clear user chat error:', e);
     }
   },
 

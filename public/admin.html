@@ -2761,8 +2761,18 @@
         const container = document.getElementById('adminChatStream');
         if (!container) return;
 
+        let html = `
+          <div class="wa-date-sep" style="text-align: center; margin: 6px 0;">
+            <span style="background: rgba(255, 255, 255, 0.92); color: #54656f; font-size: 0.7rem; font-weight: 700; padding: 4px 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(11,20,26,0.12); text-transform: uppercase;">TODAY</span>
+          </div>
+          <div style="align-self: center; background: #ffeecd; color: #54656f; font-size: 0.72rem; padding: 6px 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(11,20,26,0.08); margin: 2px auto 8px auto; text-align: center; max-width: 90%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-lock" style="font-size:0.7rem; color:#ff6600;"></i>
+            <span>Messages are end-to-end encrypted with ROTERPAY Master Helpdesk.</span>
+          </div>
+        `;
+
         if (!msgs || msgs.length === 0) {
-          container.innerHTML = `
+          container.innerHTML = html + `
             <div class="wa-empty-state">
               <i class="fa-solid fa-comments"></i>
               <strong>No messages yet</strong>
@@ -2772,7 +2782,7 @@
           return;
         }
 
-        let html = msgs.map(m => {
+        html += msgs.map(m => {
           const isAdmin = m.sender === 'admin';
           const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           const escapedText = (m.message || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
