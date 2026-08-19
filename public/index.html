@@ -1632,19 +1632,49 @@
 
             <!-- WhatsApp Bottom Input Bar -->
             <form id="formUserSupportChat" class="user-chat-input-bar" onsubmit="FintechApp.handleSendSupportMessage(event)">
-              <div class="user-chat-input-pill">
-                <button type="button" class="user-chat-input-icon" title="Emoji">
-                  <i class="fa-regular fa-face-smile"></i>
-                </button>
-                <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Message" required autocomplete="off" oninput="FintechApp.sendUserTypingSignal()">
-                <button type="button" class="user-chat-input-icon" title="Attach" onclick="document.getElementById('inputUserChatMsg').focus()">
-                  <i class="fa-solid fa-paperclip"></i>
+              <!-- WhatsApp Edit Mode Banner -->
+              <div id="userChatEditBanner" class="user-chat-edit-banner" style="display: none;">
+                <div class="edit-banner-text">
+                  <i class="fa-solid fa-pen" style="color: #ff6600; font-size: 0.8rem;"></i>
+                  <span>Edit Message</span>
+                </div>
+                <button type="button" class="edit-banner-close" onclick="FintechApp.cancelEditMode()">&times;</button>
+              </div>
+
+              <div class="user-chat-input-row">
+                <div class="user-chat-input-pill">
+                  <button type="button" class="user-chat-input-icon" title="Emoji">
+                    <i class="fa-regular fa-face-smile"></i>
+                  </button>
+                  <input type="text" id="inputUserChatMsg" class="user-chat-input-field" placeholder="Message" required autocomplete="off" oninput="FintechApp.sendUserTypingSignal()">
+                  <button type="button" class="user-chat-input-icon" title="Attach" onclick="document.getElementById('inputUserChatMsg').focus()">
+                    <i class="fa-solid fa-paperclip"></i>
+                  </button>
+                </div>
+                <button type="submit" class="user-chat-send-btn" id="btnUserChatSend" title="Send Message">
+                  <i class="fa-solid fa-paper-plane" id="iconUserChatSend"></i>
                 </button>
               </div>
-              <button type="submit" class="user-chat-send-btn" title="Send Message">
-                <i class="fa-solid fa-paper-plane"></i>
-              </button>
             </form>
+
+            <!-- WhatsApp Message Context Action Sheet (Hold to Open) -->
+            <div id="userMsgActionSheet" class="wa-action-sheet-backdrop" style="display: none;" onclick="FintechApp.closeMsgActionSheet(event)">
+              <div class="wa-action-sheet" onclick="event.stopPropagation()">
+                <div class="wa-action-preview" id="userActionMsgPreview">Message...</div>
+                <div class="wa-action-list">
+                  <button type="button" class="wa-action-item" onclick="FintechApp.copyCurrentActionMsg()">
+                    <i class="fa-solid fa-copy"></i> Copy Text
+                  </button>
+                  <button type="button" class="wa-action-item" id="btnUserActionEdit" onclick="FintechApp.startEditCurrentActionMsg()">
+                    <i class="fa-solid fa-pen"></i> Edit Message
+                  </button>
+                  <button type="button" class="wa-action-item del" id="btnUserActionDelete" onclick="FintechApp.deleteCurrentActionMsg()">
+                    <i class="fa-solid fa-trash-can"></i> Delete Message
+                  </button>
+                </div>
+                <button type="button" class="wa-action-cancel" onclick="FintechApp.closeMsgActionSheet()">Cancel</button>
+              </div>
+            </div>
 
           </div>
         </section>

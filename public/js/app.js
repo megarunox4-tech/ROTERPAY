@@ -1126,7 +1126,11 @@ const FintechApp = {
         if (isAdmin) {
           return `
             <div class="uc-bubble-row admin-msg">
-              <div class="uc-bubble admin">
+              <div class="uc-bubble admin" id="msg-bubble-${m.id}"
+                   oncontextmenu="event.preventDefault(); FintechApp.openMsgActionSheet(${m.id}, '${escapedText}', false);"
+                   ontouchstart="FintechApp.handleMsgTouchStart(event, ${m.id}, '${escapedText}', false)"
+                   ontouchend="FintechApp.handleMsgTouchEnd(event)"
+                   ontouchmove="FintechApp.handleMsgTouchCancel()">
                 <div class="uc-bubble-sender">ROTERPAY Support <i class="fa-solid fa-circle-check" style="color:#00a884; font-size:0.65rem;"></i></div>
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">${timeStr}</div>
@@ -1136,14 +1140,14 @@ const FintechApp = {
         } else {
           return `
             <div class="uc-bubble-row user-msg">
-              <div class="uc-bubble user">
+              <div class="uc-bubble user" id="msg-bubble-${m.id}"
+                   oncontextmenu="event.preventDefault(); FintechApp.openMsgActionSheet(${m.id}, '${escapedText}', true);"
+                   ontouchstart="FintechApp.handleMsgTouchStart(event, ${m.id}, '${escapedText}', true)"
+                   ontouchend="FintechApp.handleMsgTouchEnd(event)"
+                   ontouchmove="FintechApp.handleMsgTouchCancel()">
                 <div>${m.message}</div>
                 <div class="uc-bubble-time">
                   ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.65rem; color:${isSeen ? '#53bdeb' : '#8696a0'};" title="${isSeen ? 'Read' : 'Delivered'}"></i>
-                  <div class="uc-bubble-actions">
-                    <button type="button" class="uc-msg-btn" onclick="FintechApp.editUserMessage(${m.id}, '${escapedText}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                    <button type="button" class="uc-msg-btn del" onclick="FintechApp.deleteUserMessage(${m.id})" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1168,27 +1172,103 @@ const FintechApp = {
     container.scrollTop = container.scrollHeight;
   },
 
-  async editUserMessage(id, oldText) {
-    const newText = prompt('Edit your message:', oldText);
-    if (newText === null) return;
-    const clean = newText.trim();
-    if (!clean || clean === oldText.trim()) return;
+  // Long-press Touch Handlers for WhatsApp Context Menu
+  handleMsgTouchStart(e, msgId, messageText, isOwn) {
+    if (this._touchTimer) clearTimeout(this._touchTimer);
+    const bubble = document.getElementById(`msg-bubble-${msgId}`);
+    if (bubble) bubble.classList.add('holding');
 
-    try {
-      const res = await fetch('/api/support/message/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, message: clean, editor: 'User' })
-      });
-      if (res.ok) {
-        await this.loadSupportMessages();
-      }
-    } catch (e) {
-      console.warn('Edit user message error:', e);
+    this._touchTimer = setTimeout(() => {
+      if (bubble) bubble.classList.remove('holding');
+      if (navigator.vibrate) navigator.vibrate(40);
+      this.openMsgActionSheet(msgId, messageText, isOwn);
+    }, 550); // 550ms WhatsApp-like hold duration
+  },
+
+  handleMsgTouchEnd(e) {
+    if (this._touchTimer) {
+      clearTimeout(this._touchTimer);
+      this._touchTimer = null;
+    }
+    document.querySelectorAll('.uc-bubble.holding').forEach(b => b.classList.remove('holding'));
+  },
+
+  handleMsgTouchCancel() {
+    if (this._touchTimer) {
+      clearTimeout(this._touchTimer);
+      this._touchTimer = null;
+    }
+    document.querySelectorAll('.uc-bubble.holding').forEach(b => b.classList.remove('holding'));
+  },
+
+  openMsgActionSheet(msgId, messageText, isOwn = false) {
+    this.state.currentActionMsg = { id: msgId, text: messageText, isOwn: isOwn };
+    const sheet = document.getElementById('userMsgActionSheet');
+    const preview = document.getElementById('userActionMsgPreview');
+    const btnEdit = document.getElementById('btnUserActionEdit');
+    const btnDelete = document.getElementById('btnUserActionDelete');
+
+    if (preview) preview.textContent = messageText;
+    if (btnEdit) btnEdit.style.display = isOwn ? 'flex' : 'none';
+    if (btnDelete) btnDelete.style.display = isOwn ? 'flex' : 'none';
+
+    if (sheet) sheet.style.display = 'flex';
+  },
+
+  closeMsgActionSheet(e) {
+    if (e && e.target && e.target.closest('.wa-action-sheet') && !e.target.classList.contains('wa-action-cancel')) return;
+    const sheet = document.getElementById('userMsgActionSheet');
+    if (sheet) sheet.style.display = 'none';
+    this.state.currentActionMsg = null;
+  },
+
+  copyCurrentActionMsg() {
+    if (!this.state.currentActionMsg) return;
+    const text = this.state.currentActionMsg.text;
+    navigator.clipboard?.writeText(text).then(() => {
+      this.showToast('Message copied to clipboard', 'info');
+    }).catch(() => {});
+    this.closeMsgActionSheet();
+  },
+
+  startEditCurrentActionMsg() {
+    if (!this.state.currentActionMsg) return;
+    const { id, text } = this.state.currentActionMsg;
+    this.closeMsgActionSheet();
+
+    this.state.editingMessageId = id;
+    const banner = document.getElementById('userChatEditBanner');
+    const input = document.getElementById('inputUserChatMsg');
+    const sendIcon = document.getElementById('iconUserChatSend');
+
+    if (banner) banner.style.display = 'flex';
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+    if (sendIcon) {
+      sendIcon.className = 'fa-solid fa-check';
     }
   },
 
-  async deleteUserMessage(id) {
+  cancelEditMode() {
+    this.state.editingMessageId = null;
+    const banner = document.getElementById('userChatEditBanner');
+    const input = document.getElementById('inputUserChatMsg');
+    const sendIcon = document.getElementById('iconUserChatSend');
+
+    if (banner) banner.style.display = 'none';
+    if (input) input.value = '';
+    if (sendIcon) {
+      sendIcon.className = 'fa-solid fa-paper-plane';
+    }
+  },
+
+  async deleteCurrentActionMsg() {
+    if (!this.state.currentActionMsg) return;
+    const id = this.state.currentActionMsg.id;
+    this.closeMsgActionSheet();
+
     if (!confirm('Are you sure you want to delete this message?')) return;
     try {
       const res = await fetch('/api/support/message/delete', {
@@ -1198,6 +1278,7 @@ const FintechApp = {
       });
       if (res.ok) {
         await this.loadSupportMessages();
+        this.showToast('Message deleted', 'info');
       }
     } catch (e) {
       console.warn('Delete user message error:', e);
@@ -1237,6 +1318,27 @@ const FintechApp = {
 
     const userId = this.state.currentUser ? this.state.currentUser.id : (localStorage.getItem('fintech_user_id') || 'GUEST');
     const userName = this.state.currentUser ? this.state.currentUser.name : 'Guest User';
+
+    // Check if in edit mode
+    if (this.state.editingMessageId) {
+      const editId = this.state.editingMessageId;
+      this.cancelEditMode();
+
+      try {
+        const res = await fetch('/api/support/message/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editId, message: text, editor: 'User' })
+        });
+        if (res.ok) {
+          await this.loadSupportMessages();
+          this.showToast('Message updated', 'success');
+        }
+      } catch (err) {
+        this.showToast('Failed to update message', 'danger');
+      }
+      return;
+    }
 
     input.value = '';
     

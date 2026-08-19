@@ -1201,12 +1201,41 @@
               </div>
 
               <!-- Input Bar -->
-              <form id="formAdminReply" class="wa-input-bar" onsubmit="AdminPortal.handleSendAdminReply(event)">
-                <input type="text" id="adminReplyInput" class="wa-input-field" placeholder="Type a message..." required autocomplete="off" oninput="AdminPortal.sendAdminTypingSignal()">
-                <button type="submit" class="wa-send-btn">
-                  <i class="fa-solid fa-paper-plane"></i>
-                </button>
+              <form id="formAdminReply" class="wa-input-bar" style="flex-direction: column; gap: 4px;" onsubmit="AdminPortal.handleSendAdminReply(event)">
+                <!-- Edit Banner -->
+                <div id="adminChatEditBanner" class="user-chat-edit-banner" style="display: none; width: 100%; margin-bottom: 4px;">
+                  <div class="edit-banner-text">
+                    <i class="fa-solid fa-pen" style="color: #ff6600; font-size: 0.8rem;"></i>
+                    <span>Edit Message</span>
+                  </div>
+                  <button type="button" class="edit-banner-close" onclick="AdminPortal.cancelEditMode()">&times;</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                  <input type="text" id="adminReplyInput" class="wa-input-field" placeholder="Type a message..." required autocomplete="off" oninput="AdminPortal.sendAdminTypingSignal()">
+                  <button type="submit" class="wa-send-btn" id="btnAdminSend" title="Send Reply">
+                    <i class="fa-solid fa-paper-plane" id="iconAdminSend"></i>
+                  </button>
+                </div>
               </form>
+
+              <!-- WhatsApp Message Context Action Sheet for Admin -->
+              <div id="adminMsgActionSheet" class="wa-action-sheet-backdrop" style="display: none;" onclick="AdminPortal.closeMsgActionSheet(event)">
+                <div class="wa-action-sheet" onclick="event.stopPropagation()">
+                  <div class="wa-action-preview" id="adminActionMsgPreview">Message...</div>
+                  <div class="wa-action-list">
+                    <button type="button" class="wa-action-item" onclick="AdminPortal.copyCurrentActionMsg()">
+                      <i class="fa-solid fa-copy"></i> Copy Text
+                    </button>
+                    <button type="button" class="wa-action-item" id="btnAdminActionEdit" onclick="AdminPortal.startEditCurrentActionMsg()">
+                      <i class="fa-solid fa-pen"></i> Edit Message
+                    </button>
+                    <button type="button" class="wa-action-item del" id="btnAdminActionDelete" onclick="AdminPortal.deleteCurrentActionMsg()">
+                      <i class="fa-solid fa-trash-can"></i> Delete Message
+                    </button>
+                  </div>
+                  <button type="button" class="wa-action-cancel" onclick="AdminPortal.closeMsgActionSheet()">Cancel</button>
+                </div>
+              </div>
 
             </div>
 
@@ -2793,14 +2822,14 @@
               <div class="wa-bubble-row admin">
                 <div class="wa-admin-avatar-sm" title="Admin"><i class="fa-solid fa-user-shield" style="font-size:0.7rem;"></i></div>
                 <div class="wa-bubble-content">
-                  <div class="wa-bubble admin">
+                  <div class="wa-bubble admin" id="admin-msg-bubble-${m.id}"
+                       oncontextmenu="event.preventDefault(); AdminPortal.openMsgActionSheet(${m.id}, '${escapedText}', true);"
+                       ontouchstart="AdminPortal.handleMsgTouchStart(event, ${m.id}, '${escapedText}', true)"
+                       ontouchend="AdminPortal.handleMsgTouchEnd(event)"
+                       ontouchmove="AdminPortal.handleMsgTouchCancel()">
                     <div>${m.message}</div>
                     <div class="wa-bubble-meta">
                       ${timeStr} <i class="fa-solid fa-check-double" style="font-size:0.6rem; color: ${isSeen ? '#bbf7d0' : 'rgba(255,255,255,0.65)'};" title="${isSeen ? 'Read by user' : 'Delivered'}"></i>
-                      <div class="wa-bubble-actions">
-                        <button type="button" class="wa-msg-btn" onclick="AdminPortal.editMessage(${m.id}, '${escapedText}')" title="Edit Message"><i class="fa-solid fa-pen"></i></button>
-                        <button type="button" class="wa-msg-btn del" onclick="AdminPortal.deleteMessage(${m.id})" title="Delete Message"><i class="fa-solid fa-trash-can"></i></button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -2812,14 +2841,14 @@
                 <div class="wa-avatar-sm">${(m.userName || 'U').charAt(0).toUpperCase()}</div>
                 <div class="wa-bubble-content">
                   <div class="wa-sender-name">${m.userName || 'App User'} <span style="font-size:0.65rem;font-weight:400;color:#94a3b8;">#${m.userId}</span></div>
-                  <div class="wa-bubble user">
+                  <div class="wa-bubble user" id="admin-msg-bubble-${m.id}"
+                       oncontextmenu="event.preventDefault(); AdminPortal.openMsgActionSheet(${m.id}, '${escapedText}', false);"
+                       ontouchstart="AdminPortal.handleMsgTouchStart(event, ${m.id}, '${escapedText}', false)"
+                       ontouchend="AdminPortal.handleMsgTouchEnd(event)"
+                       ontouchmove="AdminPortal.handleMsgTouchCancel()">
                     <div>${m.message}</div>
                     <div class="wa-bubble-meta">
                       ${timeStr}
-                      <div class="wa-bubble-actions">
-                        <button type="button" class="wa-msg-btn" onclick="AdminPortal.editMessage(${m.id}, '${escapedText}')" title="Edit Message"><i class="fa-solid fa-pen"></i></button>
-                        <button type="button" class="wa-msg-btn del" onclick="AdminPortal.deleteMessage(${m.id})" title="Delete Message"><i class="fa-solid fa-trash-can"></i></button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -2848,6 +2877,105 @@
         container.scrollTop = container.scrollHeight;
       },
 
+      // Admin Touch Long-Press Handlers
+      handleMsgTouchStart(e, msgId, messageText, isOwn) {
+        if (this._touchTimer) clearTimeout(this._touchTimer);
+        const bubble = document.getElementById(`admin-msg-bubble-${msgId}`);
+        if (bubble) bubble.classList.add('holding');
+
+        this._touchTimer = setTimeout(() => {
+          if (bubble) bubble.classList.remove('holding');
+          if (navigator.vibrate) navigator.vibrate(40);
+          this.openMsgActionSheet(msgId, messageText, isOwn);
+        }, 550);
+      },
+
+      handleMsgTouchEnd(e) {
+        if (this._touchTimer) {
+          clearTimeout(this._touchTimer);
+          this._touchTimer = null;
+        }
+        document.querySelectorAll('.wa-bubble.holding').forEach(b => b.classList.remove('holding'));
+      },
+
+      handleMsgTouchCancel() {
+        if (this._touchTimer) {
+          clearTimeout(this._touchTimer);
+          this._touchTimer = null;
+        }
+        document.querySelectorAll('.wa-bubble.holding').forEach(b => b.classList.remove('holding'));
+      },
+
+      openMsgActionSheet(msgId, messageText, isOwn = false) {
+        this.state.currentActionMsg = { id: msgId, text: messageText, isOwn: isOwn };
+        const sheet = document.getElementById('adminMsgActionSheet');
+        const preview = document.getElementById('adminActionMsgPreview');
+        const btnEdit = document.getElementById('btnAdminActionEdit');
+        const btnDelete = document.getElementById('btnAdminActionDelete');
+
+        if (preview) preview.textContent = messageText;
+        if (btnEdit) btnEdit.style.display = isOwn ? 'flex' : 'none';
+        if (btnDelete) btnDelete.style.display = 'flex'; // Admin can delete both own & user spam
+
+        if (sheet) sheet.style.display = 'flex';
+      },
+
+      closeMsgActionSheet(e) {
+        if (e && e.target && e.target.closest('.wa-action-sheet') && !e.target.classList.contains('wa-action-cancel')) return;
+        const sheet = document.getElementById('adminMsgActionSheet');
+        if (sheet) sheet.style.display = 'none';
+        this.state.currentActionMsg = null;
+      },
+
+      copyCurrentActionMsg() {
+        if (!this.state.currentActionMsg) return;
+        const text = this.state.currentActionMsg.text;
+        navigator.clipboard?.writeText(text).then(() => {
+          alert('Message copied to clipboard');
+        }).catch(() => {});
+        this.closeMsgActionSheet();
+      },
+
+      startEditCurrentActionMsg() {
+        if (!this.state.currentActionMsg) return;
+        const { id, text } = this.state.currentActionMsg;
+        this.closeMsgActionSheet();
+
+        this.state.editingMessageId = id;
+        const banner = document.getElementById('adminChatEditBanner');
+        const input = document.getElementById('adminReplyInput');
+        const sendIcon = document.getElementById('iconAdminSend');
+
+        if (banner) banner.style.display = 'flex';
+        if (input) {
+          input.value = text;
+          input.focus();
+        }
+        if (sendIcon) {
+          sendIcon.className = 'fa-solid fa-check';
+        }
+      },
+
+      cancelEditMode() {
+        this.state.editingMessageId = null;
+        const banner = document.getElementById('adminChatEditBanner');
+        const input = document.getElementById('adminReplyInput');
+        const sendIcon = document.getElementById('iconAdminSend');
+
+        if (banner) banner.style.display = 'none';
+        if (input) input.value = '';
+        if (sendIcon) {
+          sendIcon.className = 'fa-solid fa-paper-plane';
+        }
+      },
+
+      async deleteCurrentActionMsg() {
+        if (!this.state.currentActionMsg) return;
+        const id = this.state.currentActionMsg.id;
+        this.closeMsgActionSheet();
+        this.deleteMessage(id);
+      },
+
       sendAdminTypingSignal() {
         const userId = this.state.activeSupportUserId;
         if (!userId) return;
@@ -2866,6 +2994,26 @@
 
         const userId = this.state.activeSupportUserId;
         if (!userId) return alert('Please select a user thread first');
+
+        // Check if editing
+        if (this.state.editingMessageId) {
+          const editId = this.state.editingMessageId;
+          this.cancelEditMode();
+
+          try {
+            const res = await this.apiFetch('/api/support/message/edit', {
+              method: 'POST',
+              body: JSON.stringify({ id: editId, message: text, editor: 'Admin' })
+            });
+            if (res.ok) {
+              await this.loadActiveThreadMessages();
+              await this.loadSupportThreads();
+            }
+          } catch (err) {
+            alert('Failed to edit message');
+          }
+          return;
+        }
 
         input.value = '';
 
@@ -2886,26 +3034,8 @@
       },
 
       async editMessage(id, oldText) {
-        const newText = prompt('Edit Message:', oldText);
-        if (newText === null) return;
-        const clean = newText.trim();
-        if (!clean) return alert('Message cannot be empty');
-        if (clean === oldText.trim()) return;
-
-        try {
-          const res = await this.apiFetch('/api/support/message/edit', {
-            method: 'POST',
-            body: JSON.stringify({ id, message: clean, editor: 'Admin' })
-          });
-          if (!res.ok) {
-            const data = await res.json();
-            return alert(data.error || 'Failed to edit message');
-          }
-          await this.loadActiveThreadMessages();
-          await this.loadSupportThreads();
-        } catch (err) {
-          alert(err.message || 'Error editing message');
-        }
+        this.state.currentActionMsg = { id, text: oldText, isOwn: true };
+        this.startEditCurrentActionMsg();
       },
 
       async deleteMessage(id) {
