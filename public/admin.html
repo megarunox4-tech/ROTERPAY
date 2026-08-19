@@ -898,20 +898,39 @@
         overview: null
       },
 
-      init() {
+      async init() {
         this.bindAuth();
         this.bindMenu();
         this.bindActions();
 
-        // Restore admin session if token exists
+        // Validate admin session with live server check
         const savedToken = sessionStorage.getItem('fintech_admin_token');
         if (savedToken) {
-          this.state.token = savedToken;
-          this.state.isAuthenticated = true;
-          document.getElementById('adminAuthScreen').style.display = 'none';
-          document.getElementById('adminShell').style.display = 'flex';
-          this.loadAll();
+          try {
+            this.state.token = savedToken;
+            const res = await fetch('/api/admin/me', {
+              headers: {
+                'Authorization': `Bearer ${savedToken}`
+              }
+            });
+            if (res.ok) {
+              const adminData = await res.json();
+              this.state.isAuthenticated = true;
+              this.state.admin = adminData;
+              document.getElementById('adminAuthScreen').style.display = 'none';
+              document.getElementById('adminShell').style.display = 'flex';
+              await this.loadAll();
+              return;
+            }
+          } catch (e) {}
         }
+
+        // If no token or invalid/expired, ensure locked state
+        this.state.isAuthenticated = false;
+        this.state.token = null;
+        sessionStorage.removeItem('fintech_admin_token');
+        document.getElementById('adminAuthScreen').style.display = 'flex';
+        document.getElementById('adminShell').style.display = 'none';
       },
 
       async apiFetch(url, options = {}) {

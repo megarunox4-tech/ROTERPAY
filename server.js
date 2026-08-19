@@ -926,7 +926,7 @@ app.post('/api/admin/login', async (req, res) => {
 
     if (!admin) {
       await logAudit('Admin Auth Failed', `Unknown admin user attempt: "${adminUser}"`, req);
-      return res.status(401).json({ error: 'Invalid administrator credentials' });
+      return res.status(401).json({ error: 'Invalid administrator credentials. No admin record found in database.' });
     }
 
     if (admin.status !== 'ACTIVE') {
@@ -953,7 +953,7 @@ app.post('/api/admin/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Admin auth error:', err.message);
-    res.status(500).json({ error: 'Admin authentication error' });
+    res.status(401).json({ error: 'Admin authentication error. Database is unavailable or has no admin record.' });
   }
 });
 
