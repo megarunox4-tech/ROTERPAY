@@ -168,9 +168,16 @@
     <div class="auth-box">
       <img src="/images/roterpay-logo.png" alt="ROTERPAY Logo" style="width: 76px; height: 76px; border-radius: 20px; box-shadow: 0 8px 24px rgba(255, 102, 0, 0.3); object-fit: cover; border: 2px solid #ffe3d1; margin: 0 auto 14px auto; display: block;">
       <h2>Master Admin Portal</h2>
-      <p>Enter administrator passcode to access full system controls.</p>
+      <p>Enter administrator credentials to access full system controls.</p>
       <form id="formAuthLogin">
-        <input type="password" id="authPassword" class="form-input text-center" placeholder="Passcode (admin123)" required>
+        <div style="margin-bottom: 12px; text-align: left;">
+          <label style="display:block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Username</label>
+          <input type="text" id="authUsername" class="form-input" placeholder="Admin username" value="admin" required autocomplete="username">
+        </div>
+        <div style="margin-bottom: 18px; text-align: left;">
+          <label style="display:block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Passcode / Password</label>
+          <input type="password" id="authPassword" class="form-input" placeholder="Enter passcode" required autocomplete="current-password">
+        </div>
         <button type="submit" class="btn-orange-full">Authenticate Master Admin</button>
       </form>
     </div>
@@ -902,19 +909,41 @@
         }
       },
 
+      async apiFetch(url, options = {}) {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        };
+        const token = this.state.token || sessionStorage.getItem('fintech_admin_token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401 || res.status === 403) {
+          this.state.isAuthenticated = false;
+          this.state.token = null;
+          sessionStorage.removeItem('fintech_admin_token');
+          document.getElementById('adminAuthScreen').style.display = 'flex';
+          document.getElementById('adminShell').style.display = 'none';
+          throw new Error('Admin session expired. Please log in again.');
+        }
+        return res;
+      },
+
       bindAuth() {
         document.getElementById('formAuthLogin').addEventListener('submit', async (e) => {
           e.preventDefault();
+          const username = document.getElementById('authUsername')?.value || 'admin';
           const password = document.getElementById('authPassword').value;
 
           try {
             const res = await fetch('/api/admin/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ password })
+              body: JSON.stringify({ username, password })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
             this.state.isAuthenticated = true;
             this.state.token = data.token;
@@ -996,21 +1025,25 @@
       },
 
       async loadOverview() {
-        const res = await fetch('/api/admin/overview');
-        const data = await res.json();
-        this.state.overview = data;
+        try {
+          const res = await this.apiFetch('/api/admin/overview');
+          const data = await res.json();
+          this.state.overview = data;
 
-        document.getElementById('mUsers').textContent = data.totalUsers;
-        document.getElementById('mCapital').textContent = `₹ ${data.totalBalance.toFixed(2)}`;
-        document.getElementById('mPending').textContent = data.pendingOrdersCount;
-        document.getElementById('mRate').textContent = data.exchangeRate;
+          document.getElementById('mUsers').textContent = data.totalUsers;
+          document.getElementById('mCapital').textContent = `₹ ${data.totalBalance.toFixed(2)}`;
+          document.getElementById('mPending').textContent = data.pendingOrdersCount;
+          document.getElementById('mRate').textContent = data.exchangeRate;
+        } catch (e) {}
       },
 
       async loadUsers() {
-        const res = await fetch('/api/admin/users');
-        const users = await res.json();
-        this.state.users = users;
-        this.renderUsersTable();
+        try {
+          const res = await this.apiFetch('/api/admin/users');
+          const users = await res.json();
+          this.state.users = users;
+          this.renderUsersTable();
+        } catch (e) {}
       },
 
       renderUsersTable() {
@@ -1090,9 +1123,8 @@
         tbody.querySelectorAll('.btn-toggle-u-status').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             const uid = e.currentTarget.getAttribute('data-id');
-            await fetch('/api/admin/users/toggle-status', {
+            await this.apiFetch('/api/admin/users/toggle-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: uid })
             });
             await this.loadUsers();
@@ -1122,7 +1154,7 @@
           btn.addEventListener('click', async (e) => {
             const uid = e.currentTarget.getAttribute('data-id');
             if (confirm(`Delete user ${uid}?`)) {
-              await fetch(`/api/admin/users/${uid}`, { method: 'DELETE' });
+              await this.apiFetch(`/api/admin/users/${uid}`, { method: 'DELETE' });
               await this.loadUsers();
               await this.loadOverview();
             }
@@ -1131,10 +1163,12 @@
       },
 
       async loadOrders() {
-        const res = await fetch('/api/admin/orders');
-        const orders = await res.json();
-        this.state.orders = orders;
-        this.renderOrdersTable();
+        try {
+          const res = await this.apiFetch('/api/admin/orders');
+          const orders = await res.json();
+          this.state.orders = orders;
+          this.renderOrdersTable();
+        } catch (e) {}
       },
 
       renderOrdersTable() {
@@ -1220,9 +1254,8 @@
           btn.addEventListener('click', async (e) => {
             const orderId = e.currentTarget.getAttribute('data-id');
             const orderType = e.currentTarget.getAttribute('data-type');
-            await fetch('/api/admin/orders/update-status', {
+            await this.apiFetch('/api/admin/orders/update-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderId, orderType, newStatus: 'Success' })
             });
             await this.loadOrders();
@@ -1235,9 +1268,8 @@
           btn.addEventListener('click', async (e) => {
             const orderId = e.currentTarget.getAttribute('data-id');
             const orderType = e.currentTarget.getAttribute('data-type');
-            await fetch('/api/admin/orders/update-status', {
+            await this.apiFetch('/api/admin/orders/update-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderId, orderType, newStatus: 'Close' })
             });
             await this.loadOrders();
@@ -1250,9 +1282,8 @@
             const orderId = e.currentTarget.getAttribute('data-id');
             const orderType = e.currentTarget.getAttribute('data-type');
             const newStatus = e.currentTarget.value;
-            await fetch('/api/admin/orders/update-status', {
+            await this.apiFetch('/api/admin/orders/update-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderId, orderType, newStatus })
             });
             await this.loadOrders();
@@ -1265,7 +1296,7 @@
           btn.addEventListener('click', async (e) => {
             const orderId = e.currentTarget.getAttribute('data-id');
             if (confirm(`Delete order #${orderId}?`)) {
-              await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+              await this.apiFetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
               await this.loadOrders();
               await this.loadOverview();
             }
@@ -1274,144 +1305,154 @@
       },
 
       async loadWallets() {
-        const res = await fetch('/api/admin/wallets');
-        const wallets = await res.json();
-        this.state.wallets = wallets;
+        try {
+          const res = await this.apiFetch('/api/admin/wallets');
+          const wallets = await res.json();
+          this.state.wallets = wallets;
 
-        const searchQuery = (document.getElementById('searchWalletsInput')?.value || '').toLowerCase().trim();
-        let filtered = wallets;
+          const searchQuery = (document.getElementById('searchWalletsInput')?.value || '').toLowerCase().trim();
+          let filtered = wallets;
 
-        if (searchQuery) {
-          filtered = filtered.filter(w => 
-            (w.name && w.name.toLowerCase().includes(searchQuery)) ||
-            (w.address && w.address.toLowerCase().includes(searchQuery)) ||
-            (w.holderName && w.holderName.toLowerCase().includes(searchQuery))
-          );
-        }
+          if (searchQuery) {
+            filtered = filtered.filter(w => 
+              (w.name && w.name.toLowerCase().includes(searchQuery)) ||
+              (w.address && w.address.toLowerCase().includes(searchQuery)) ||
+              (w.holderName && w.holderName.toLowerCase().includes(searchQuery))
+            );
+          }
 
-        const tbody = document.getElementById('adminWalletsTbody');
-        if (!tbody) return;
+          const tbody = document.getElementById('adminWalletsTbody');
+          if (!tbody) return;
 
-        if (!filtered.length) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">No user payment tools saved yet.</td></tr>`;
-          return;
-        }
+          if (!filtered.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">No user payment tools saved yet.</td></tr>`;
+            return;
+          }
 
-        tbody.innerHTML = filtered.map(w => `
-          <tr>
-            <td><strong>#${w.id}</strong></td>
-            <td><strong>${w.name}</strong></td>
-            <td><span class="badge badge-info">${w.type || 'Personal'}</span></td>
-            <td><code>${w.address}</code></td>
-            <td><strong>${w.holderName || '-'}</strong></td>
-            <td>${w.createdAt || 'Recent'}</td>
-            <td>
-              <button class="btn btn-secondary btn-del-wallet" data-id="${w.id}" style="color:#f1416c;"><i class="fa-solid fa-trash"></i> Delete</button>
-            </td>
-          </tr>
-        `).join('');
+          tbody.innerHTML = filtered.map(w => `
+            <tr>
+              <td><strong>#${w.id}</strong></td>
+              <td><strong>${w.name}</strong></td>
+              <td><span class="badge badge-info">${w.type || 'Personal'}</span></td>
+              <td><code>${w.address}</code></td>
+              <td><strong>${w.holderName || '-'}</strong></td>
+              <td>${w.createdAt || 'Recent'}</td>
+              <td>
+                <button class="btn btn-secondary btn-del-wallet" data-id="${w.id}" style="color:#f1416c;"><i class="fa-solid fa-trash"></i> Delete</button>
+              </td>
+            </tr>
+          `).join('');
 
-        tbody.querySelectorAll('.btn-del-wallet').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            if (confirm('Delete this saved payment tool?')) {
-              await fetch(`/api/wallets/${id}`, { method: 'DELETE' });
-              await this.loadWallets();
-            }
+          tbody.querySelectorAll('.btn-del-wallet').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const id = e.currentTarget.getAttribute('data-id');
+              if (confirm('Delete this saved payment tool?')) {
+                await fetch(`/api/wallets/${id}`, { method: 'DELETE' });
+                await this.loadWallets();
+              }
+            });
           });
-        });
+        } catch (e) {}
       },
 
       async loadNotifs() {
-        const res = await fetch('/api/notifications');
-        const data = await res.json();
-        this.state.notifs = data.notifications;
+        try {
+          const res = await fetch('/api/notifications');
+          const data = await res.json();
+          this.state.notifs = data.notifications;
 
-        const tbody = document.getElementById('adminNotifsTbody');
-        if (!tbody) return;
+          const tbody = document.getElementById('adminNotifsTbody');
+          if (!tbody) return;
 
-        tbody.innerHTML = data.notifications.map(n => `
-          <tr>
-            <td><strong style="color:var(--primary-orange);">${n.title}</strong></td>
-            <td>${n.body}</td>
-            <td><span class="badge badge-warning">${n.type}</span></td>
-            <td>${n.time}</td>
-            <td><span class="badge badge-success">Broadcasted</span></td>
-          </tr>
-        `).join('');
+          tbody.innerHTML = data.notifications.map(n => `
+            <tr>
+              <td><strong style="color:var(--primary-orange);">${n.title}</strong></td>
+              <td>${n.body}</td>
+              <td><span class="badge badge-warning">${n.type}</span></td>
+              <td>${n.time}</td>
+              <td><span class="badge badge-success">Broadcasted</span></td>
+            </tr>
+          `).join('');
+        } catch (e) {}
       },
 
       async loadOffers() {
-        const res = await fetch('/api/payment/offers');
-        const offers = await res.json();
-        this.state.offers = offers;
+        try {
+          const res = await fetch('/api/payment/offers');
+          const offers = await res.json();
+          this.state.offers = offers;
 
-        const tbody = document.getElementById('offersTbody');
-        if (!tbody) return;
+          const tbody = document.getElementById('offersTbody');
+          if (!tbody) return;
 
-        tbody.innerHTML = offers.map(o => `
-          <tr>
-            <td><strong>${o.code}</strong></td>
-            <td>∫ ${o.amount}</td>
-            <td><strong style="color:var(--primary-orange);">₹ ${o.income.toFixed(2)}</strong></td>
-            <td>+ ∫ ${o.specialBonus.toFixed(2)}</td>
-            <td>${o.category}</td>
-            <td>
-              <button class="btn btn-secondary btn-del-off" data-id="${o.id}"><i class="fa-solid fa-trash" style="color:#f1416c;"></i> Delete</button>
-            </td>
-          </tr>
-        `).join('');
+          tbody.innerHTML = offers.map(o => `
+            <tr>
+              <td><strong>${o.code}</strong></td>
+              <td>∫ ${o.amount}</td>
+              <td><strong style="color:var(--primary-orange);">₹ ${o.income.toFixed(2)}</strong></td>
+              <td>+ ∫ ${o.specialBonus.toFixed(2)}</td>
+              <td>${o.category}</td>
+              <td>
+                <button class="btn btn-secondary btn-del-off" data-id="${o.id}"><i class="fa-solid fa-trash" style="color:#f1416c;"></i> Delete</button>
+              </td>
+            </tr>
+          `).join('');
 
-        tbody.querySelectorAll('.btn-del-off').forEach(b => {
-          b.addEventListener('click', async (e) => {
-            const id = Number(e.currentTarget.getAttribute('data-id'));
-            if (confirm('Delete offer?')) {
-              await fetch(`/api/admin/offers/${id}`, { method: 'DELETE' });
-              await this.loadOffers();
-            }
+          tbody.querySelectorAll('.btn-del-off').forEach(b => {
+            b.addEventListener('click', async (e) => {
+              const id = Number(e.currentTarget.getAttribute('data-id'));
+              if (confirm('Delete offer?')) {
+                await this.apiFetch(`/api/admin/offers/${id}`, { method: 'DELETE' });
+                await this.loadOffers();
+              }
+            });
           });
-        });
+        } catch (e) {}
       },
 
       async loadRates() {
-        const res = await fetch('/api/stats');
-        const stats = await res.json();
+        try {
+          const res = await fetch('/api/stats');
+          const stats = await res.json();
 
-        if (document.getElementById('rateExchange')) document.getElementById('rateExchange').value = stats.exchangeRate;
-        if (document.getElementById('rateScore')) document.getElementById('rateScore').value = stats.scoreRate || 10.00;
-        if (document.getElementById('rateCommission')) document.getElementById('rateCommission').value = stats.commissionRate;
-        if (document.getElementById('chkSpecialReward')) document.getElementById('chkSpecialReward').checked = stats.specialRewardActive !== false;
-        if (document.getElementById('chkSellingOpen')) document.getElementById('chkSellingOpen').checked = stats.isSellingOpen;
-        if (document.getElementById('chkMaintenanceMode')) document.getElementById('chkMaintenanceMode').checked = !!stats.maintenanceMode;
-        if (document.getElementById('rateAdminUpiId')) document.getElementById('rateAdminUpiId').value = stats.adminUpiId || '8104229900@upi';
-        if (document.getElementById('rateMerchantName')) document.getElementById('rateMerchantName').value = stats.merchantName || 'Fintech Hub';
-        if (document.getElementById('appVersionInput')) document.getElementById('appVersionInput').value = stats.appVersion || 'v1.1.9';
-        if (document.getElementById('appDownloadUrlInput')) document.getElementById('appDownloadUrlInput').value = stats.appDownloadUrl || '/downloads/fintech-hub.apk';
-        
-        const previewUpi = stats.adminUpiId || '8104229900@upi';
-        const previewName = stats.merchantName || 'Fintech Hub';
-        const previewUri = `upi://pay?pa=${previewUpi}&pn=${encodeURIComponent(previewName)}&cu=INR`;
-        if (document.getElementById('adminQrPreviewImg')) {
-          document.getElementById('adminQrPreviewImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(previewUri)}`;
-        }
+          if (document.getElementById('rateExchange')) document.getElementById('rateExchange').value = stats.exchangeRate;
+          if (document.getElementById('rateScore')) document.getElementById('rateScore').value = stats.scoreRate || 10.00;
+          if (document.getElementById('rateCommission')) document.getElementById('rateCommission').value = stats.commissionRate;
+          if (document.getElementById('chkSpecialReward')) document.getElementById('chkSpecialReward').checked = stats.specialRewardActive !== false;
+          if (document.getElementById('chkSellingOpen')) document.getElementById('chkSellingOpen').checked = stats.isSellingOpen;
+          if (document.getElementById('chkMaintenanceMode')) document.getElementById('chkMaintenanceMode').checked = !!stats.maintenanceMode;
+          if (document.getElementById('rateAdminUpiId')) document.getElementById('rateAdminUpiId').value = stats.adminUpiId || '8104229900@upi';
+          if (document.getElementById('rateMerchantName')) document.getElementById('rateMerchantName').value = stats.merchantName || 'Fintech Hub';
+          if (document.getElementById('appVersionInput')) document.getElementById('appVersionInput').value = stats.appVersion || 'v1.1.9';
+          if (document.getElementById('appDownloadUrlInput')) document.getElementById('appDownloadUrlInput').value = stats.appDownloadUrl || '/downloads/fintech-hub.apk';
+          
+          const previewUpi = stats.adminUpiId || '8104229900@upi';
+          const previewName = stats.merchantName || 'Fintech Hub';
+          const previewUri = `upi://pay?pa=${previewUpi}&pn=${encodeURIComponent(previewName)}&cu=INR`;
+          if (document.getElementById('adminQrPreviewImg')) {
+            document.getElementById('adminQrPreviewImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(previewUri)}`;
+          }
+        } catch (e) {}
       },
 
       async loadLogs() {
-        const res = await fetch('/api/admin/logs');
-        const logs = await res.json();
-        this.state.logs = logs;
+        try {
+          const res = await this.apiFetch('/api/admin/logs');
+          const logs = await res.json();
+          this.state.logs = logs;
 
-        const tbody = document.getElementById('logsTbody');
-        if (!tbody) return;
+          const tbody = document.getElementById('logsTbody');
+          if (!tbody) return;
 
-        tbody.innerHTML = logs.map(l => `
-          <tr>
-            <td>${new Date(l.timestamp).toLocaleString()}</td>
-            <td><strong style="color:var(--primary-orange);">${l.action}</strong></td>
-            <td>${l.detail}</td>
-            <td><code>${l.ip}</code></td>
-          </tr>
-        `).join('');
+          tbody.innerHTML = logs.map(l => `
+            <tr>
+              <td>${new Date(l.timestamp).toLocaleString()}</td>
+              <td><strong style="color:var(--primary-orange);">${l.action}</strong></td>
+              <td>${l.detail}</td>
+              <td><code>${l.ip}</code></td>
+            </tr>
+          `).join('');
+        } catch (e) {}
       },
 
       bindActions() {
@@ -1433,9 +1474,8 @@
           const walletAddress = document.getElementById('adminWalletAddress').value;
           const holderName = document.getElementById('adminWalletHolder').value;
 
-          const res = await fetch('/api/admin/wallets/add', {
+          const res = await this.apiFetch('/api/admin/wallets/add', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, walletType, walletName, walletAddress, holderName })
           });
           const data = await res.json();
@@ -1481,9 +1521,8 @@
           const amount = Number(document.getElementById('adjAmount').value);
           const reason = document.getElementById('adjReason').value;
 
-          const res = await fetch('/api/admin/users/adjust-balance', {
+          const res = await this.apiFetch('/api/admin/users/adjust-balance', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, action, amount, reason })
           });
           const data = await res.json();
@@ -1505,9 +1544,8 @@
           const status = document.getElementById('createOrderStatus').value;
           const payoutBank = document.getElementById('createOrderChannel').value;
 
-          const res = await fetch('/api/admin/orders/create', {
+          const res = await this.apiFetch('/api/admin/orders/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, orderType, amount, status, payoutBank })
           });
           const data = await res.json();
@@ -1528,9 +1566,8 @@
           const body = document.getElementById('notifBody').value;
           const type = document.getElementById('notifType').value;
 
-          const res = await fetch('/api/admin/notifications/broadcast', {
+          const res = await this.apiFetch('/api/admin/notifications/broadcast', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, body, type })
           });
           const data = await res.json();
@@ -1553,9 +1590,8 @@
           const deposit = document.getElementById('addDep').value;
           const status = document.getElementById('addStatus').value;
 
-          const res = await fetch('/api/admin/users/create', {
+          const res = await this.apiFetch('/api/admin/users/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone, password, userId, balance, scorePoints, deposit, status })
           });
           const data = await res.json();
@@ -1582,9 +1618,8 @@
           const commission = Number(document.getElementById('editComm').value);
           const bonus = Number(document.getElementById('editBonus').value);
 
-          await fetch('/api/admin/users/update', {
+          await this.apiFetch('/api/admin/users/update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, name, phone, password, balance, scorePoints, deposit, withdrawal, commission, bonus })
           });
 
@@ -1603,9 +1638,8 @@
           const specialBonus = document.getElementById('offSpec').value;
           const category = document.getElementById('offCat').value;
 
-          await fetch('/api/admin/offers', {
+          await this.apiFetch('/api/admin/offers', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount, code, income, specialBonus, category })
           });
 
@@ -1629,9 +1663,8 @@
           const appVersion = document.getElementById('appVersionInput').value;
           const appDownloadUrl = document.getElementById('appDownloadUrlInput')?.value || '/downloads/fintech-hub.apk';
 
-          await fetch('/api/admin/settings', {
+          await this.apiFetch('/api/admin/settings', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ exchangeRate, scoreRate, commissionRate, specialRewardActive, maintenanceMode, isSellingOpen, adminUpiId, merchantName, appVersion, appDownloadUrl })
           });
 

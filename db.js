@@ -1,5 +1,6 @@
 try { require('dotenv').config(); } catch (e) {}
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
 const databaseUrl = process.env.DATABASE_URL;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -129,7 +130,7 @@ const db = {
   }
 };
 
-// Initialize All 11 PostgreSQL Tables & Seed Default Records
+// Initialize All PostgreSQL Tables & Seed Default Records
 async function initializeTables() {
   if (!pool) {
     if (isProduction) {
@@ -138,6 +139,18 @@ async function initializeTables() {
     return;
   }
   try {
+    // 0. Admins Table (Secure PostgreSQL Stored Admin Credentials)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'admin',
+        status TEXT DEFAULT 'ACTIVE',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // 1. Users Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -308,6 +321,21 @@ async function initializeTables() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_orders_user ON deposit_buy_orders(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sell_orders_user ON sell_orders(userId, timestamp DESC);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);`);
+
+    // Seed default initial admin if no admin exists
+    const adminCheck = await pool.query(`SELECT COUNT(*) as count FROM admins`);
+    const adminCount = Number(adminCheck.rows[0]?.count || 0);
+    if (adminCount === 0) {
+      const initialUsername = process.env.ADMIN_USERNAME || 'admin';
+      const initialPasscode = process.env.ADMIN_PASSCODE || 'admin123';
+      const initialHash = await bcrypt.hash(initialPasscode, 10);
+      await pool.query(
+        `INSERT INTO admins (username, password_hash, role, status) VALUES ($1, $2, 'admin', 'ACTIVE') ON CONFLICT (username) DO NOTHING;`,
+        [initialUsername, initialHash]
+      );
+      console.log(`🔐 Initial PostgreSQL Admin account verified.`);
+    }
 
     // Seed default stats if not existing
     await pool.query(`
@@ -326,7 +354,7 @@ async function initializeTables() {
       ON CONFLICT (id) DO NOTHING;
     `);
 
-    console.log('✅ PostgreSQL Schema initialized successfully. All 11 tables verified.');
+    console.log('✅ PostgreSQL Schema initialized successfully. All tables verified.');
   } catch (err) {
     console.error('⚠️ PostgreSQL Schema initialization error:', err.message);
     if (isProduction) {

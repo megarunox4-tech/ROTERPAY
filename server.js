@@ -10,7 +10,6 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'roterpay_super_secret_jwt_key_2026';
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'admin123';
 
 // Middleware
 app.use(cors());
@@ -50,7 +49,7 @@ async function verifyPassword(inputPassword, storedPassword) {
 
 function sanitizeUser(user) {
   if (!user) return null;
-  const { password, ...safeUser } = user;
+  const { password, password_hash, ...safeUser } = user;
   return safeUser;
 }
 
@@ -62,15 +61,15 @@ function generateUserToken(user) {
   );
 }
 
-function generateAdminToken() {
+function generateAdminToken(admin) {
   return jwt.sign(
-    { role: 'admin', timestamp: Date.now() },
+    { adminId: admin.id, username: admin.username, role: admin.role || 'admin' },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
 }
 
-// User Authentication Middleware (Extracts token without breaking unauthenticated public endpoints)
+// User Authentication Middleware
 function authenticateUser(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = (authHeader && authHeader.startsWith('Bearer '))
@@ -95,13 +94,13 @@ function requireAdminAuth(req, res, next) {
     : (req.headers['x-admin-token'] || req.body?.adminToken || req.query?.adminToken);
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized: Admin authentication token required' });
+    return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
+      return res.status(403).json({ error: 'Forbidden: Insufficient administrator privileges' });
     }
     req.admin = decoded;
     next();
@@ -908,27 +907,55 @@ app.post('/api/credits/claim', async (req, res) => {
 });
 
 // ==========================================
-// 3. ADMIN MANAGEMENT API ROUTES (PROTECTED)
+// 3. ADMIN MANAGEMENT API ROUTES (POSTGRESQL-BACKED & PROTECTED)
 // ==========================================
 
+// Admin Login (Validates against 'admins' PostgreSQL table)
 app.post('/api/admin/login', async (req, res) => {
   try {
-    const { password } = req.body;
-    if (!password || String(password).trim() !== String(ADMIN_PASSCODE).trim()) {
-      await logAudit('Admin Auth Failed', 'Invalid admin password attempt', req);
-      return res.status(401).json({ error: 'Invalid Admin Passcode' });
+    const { username, password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
     }
 
-    const token = generateAdminToken();
-    await logAudit('Admin Auth Success', 'PC Master Admin authenticated', req);
-    res.json({ success: true, token, role: 'admin' });
+    const adminUser = String(username || process.env.ADMIN_USERNAME || 'admin').trim();
+    const admin = await db.queryOne(`SELECT * FROM admins WHERE username = $1 LIMIT 1`, [adminUser]);
+
+    if (!admin) {
+      await logAudit('Admin Auth Failed', `Unknown admin user attempt: "${adminUser}"`, req);
+      return res.status(401).json({ error: 'Invalid administrator credentials' });
+    }
+
+    if (admin.status !== 'ACTIVE') {
+      return res.status(403).json({ error: 'Administrator account is suspended' });
+    }
+
+    const isMatch = await bcrypt.compare(String(password).trim(), admin.password_hash);
+    if (!isMatch) {
+      await logAudit('Admin Auth Failed', `Failed admin password attempt for "${adminUser}"`, req);
+      return res.status(401).json({ error: 'Invalid administrator credentials' });
+    }
+
+    const token = generateAdminToken(admin);
+    await logAudit('Admin Auth Success', `Admin "${admin.username}" authenticated successfully`, req);
+
+    res.json({
+      success: true,
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        role: admin.role
+      }
+    });
   } catch (err) {
     console.error('Admin auth error:', err);
     res.status(500).json({ error: 'Admin authentication error' });
   }
 });
 
-app.get('/api/admin/overview', async (req, res) => {
+// Protected Admin Overview
+app.get('/api/admin/overview', requireAdminAuth, async (req, res) => {
   try {
     const summary = await db.queryOne(`
       SELECT 
@@ -960,7 +987,8 @@ app.get('/api/admin/overview', async (req, res) => {
   }
 });
 
-app.get('/api/admin/users', async (req, res) => {
+// Protected Admin Users List
+app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
   try {
     const users = await db.queryAll(`SELECT * FROM users ORDER BY createdAt DESC`);
     res.json(users.map(u => sanitizeUser(u)));
@@ -969,7 +997,8 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-app.post('/api/admin/users/create', async (req, res) => {
+// Protected Admin Create User
+app.post('/api/admin/users/create', requireAdminAuth, async (req, res) => {
   try {
     const { name, phone, password, userId, balance, deposit, commission, scorePoints, status } = req.body;
     if (!name) return res.status(400).json({ error: 'User name is required' });
@@ -1012,7 +1041,8 @@ app.post('/api/admin/users/create', async (req, res) => {
   }
 });
 
-app.post('/api/admin/users/update', async (req, res) => {
+// Protected Admin Update User
+app.post('/api/admin/users/update', requireAdminAuth, async (req, res) => {
   try {
     const { userId, name, phone, password, balance, deposit, withdrawal, commission, scorePoints, status, bonus } = req.body;
     const user = await db.queryOne(`SELECT * FROM users WHERE id = $1`, [String(userId)]);
@@ -1050,7 +1080,8 @@ app.post('/api/admin/users/update', async (req, res) => {
   }
 });
 
-app.post('/api/admin/users/adjust-balance', async (req, res) => {
+// Protected Admin Balance Adjustment (Atomic Transaction)
+app.post('/api/admin/users/adjust-balance', requireAdminAuth, async (req, res) => {
   try {
     const { userId, action, amount, reason } = req.body;
     const num = sanitizeAmount(amount);
@@ -1095,7 +1126,8 @@ app.post('/api/admin/users/adjust-balance', async (req, res) => {
   }
 });
 
-app.post('/api/admin/users/toggle-status', async (req, res) => {
+// Protected Admin Toggle User Status
+app.post('/api/admin/users/toggle-status', requireAdminAuth, async (req, res) => {
   try {
     const { userId } = req.body;
     const user = await db.queryOne(`SELECT * FROM users WHERE id = $1`, [String(userId)]);
@@ -1112,7 +1144,8 @@ app.post('/api/admin/users/toggle-status', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/users/:id', async (req, res) => {
+// Protected Admin Delete User
+app.delete('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
   try {
     const id = String(req.params.id);
     const existing = await db.queryOne(`SELECT * FROM users WHERE id = $1`, [id]);
@@ -1126,8 +1159,8 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-// Admin Orders
-app.get('/api/admin/orders', async (req, res) => {
+// Protected Admin Orders
+app.get('/api/admin/orders', requireAdminAuth, async (req, res) => {
   try {
     const deposits = await db.queryAll(`SELECT * FROM deposit_buy_orders`);
     const sells = await db.queryAll(`SELECT * FROM sell_orders`);
@@ -1139,7 +1172,8 @@ app.get('/api/admin/orders', async (req, res) => {
   }
 });
 
-app.post('/api/admin/orders/create', async (req, res) => {
+// Protected Admin Create Order
+app.post('/api/admin/orders/create', requireAdminAuth, async (req, res) => {
   try {
     const { userId, orderType, amount, status, payoutBank, accountNumber } = req.body;
     const num = sanitizeAmount(amount);
@@ -1195,7 +1229,8 @@ app.post('/api/admin/orders/create', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/orders/:id', async (req, res) => {
+// Protected Admin Delete Order
+app.delete('/api/admin/orders/:id', requireAdminAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const dep = await db.queryOne(`SELECT * FROM deposit_buy_orders WHERE id = $1`, [id]);
@@ -1218,7 +1253,8 @@ app.delete('/api/admin/orders/:id', async (req, res) => {
   }
 });
 
-app.post('/api/admin/orders/update-status', async (req, res) => {
+// Protected Admin Update Order Status
+app.post('/api/admin/orders/update-status', requireAdminAuth, async (req, res) => {
   try {
     const { orderId, orderType, newStatus } = req.body;
     const id = Number(orderId);
@@ -1267,8 +1303,8 @@ app.post('/api/admin/orders/update-status', async (req, res) => {
   }
 });
 
-// Notifications Broadcast
-app.post('/api/admin/notifications/broadcast', async (req, res) => {
+// Protected Admin Notification Broadcast
+app.post('/api/admin/notifications/broadcast', requireAdminAuth, async (req, res) => {
   try {
     const { title, body, type, targetUserId } = req.body;
     if (!title || !body) return res.status(400).json({ error: 'Notification title and body required' });
@@ -1295,8 +1331,8 @@ app.post('/api/admin/notifications/broadcast', async (req, res) => {
   }
 });
 
-// Admin Wallets
-app.get('/api/admin/wallets', async (req, res) => {
+// Protected Admin Wallets
+app.get('/api/admin/wallets', requireAdminAuth, async (req, res) => {
   try {
     const wallets = await db.queryAll(`SELECT * FROM user_wallets ORDER BY id DESC`);
     res.json(wallets);
@@ -1305,7 +1341,8 @@ app.get('/api/admin/wallets', async (req, res) => {
   }
 });
 
-app.post('/api/admin/wallets/add', async (req, res) => {
+// Protected Admin Add Wallet
+app.post('/api/admin/wallets/add', requireAdminAuth, async (req, res) => {
   try {
     const { userId, walletName, walletAddress, walletType, holderName } = req.body;
     if (!walletAddress) return res.status(400).json({ error: 'Account or wallet address required' });
@@ -1334,8 +1371,8 @@ app.post('/api/admin/wallets/add', async (req, res) => {
   }
 });
 
-// Admin Offers Management
-app.post('/api/admin/offers', async (req, res) => {
+// Protected Admin Offers Management
+app.post('/api/admin/offers', requireAdminAuth, async (req, res) => {
   try {
     const { amount, code, income, specialBonus, category } = req.body;
     const numAmount = sanitizeAmount(amount);
@@ -1362,7 +1399,8 @@ app.post('/api/admin/offers', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/offers/:id', async (req, res) => {
+// Protected Admin Delete Offer
+app.delete('/api/admin/offers/:id', requireAdminAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const existing = await db.queryOne(`SELECT * FROM payment_offers WHERE id = $1`, [id]);
@@ -1376,8 +1414,8 @@ app.delete('/api/admin/offers/:id', async (req, res) => {
   }
 });
 
-// Admin Settings
-app.post('/api/admin/settings', async (req, res) => {
+// Protected Admin Settings
+app.post('/api/admin/settings', requireAdminAuth, async (req, res) => {
   try {
     const { exchangeRate, scoreRate, commissionRate, specialRewardActive, maintenanceMode, isSellingOpen, appVersion, appDownloadUrl, adminUpiId, merchantName } = req.body;
 
@@ -1407,8 +1445,8 @@ app.post('/api/admin/settings', async (req, res) => {
   }
 });
 
-// Audit Logs
-app.get('/api/admin/logs', async (req, res) => {
+// Protected Admin Logs
+app.get('/api/admin/logs', requireAdminAuth, async (req, res) => {
   try {
     const logs = await db.queryAll(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT 50`);
     res.json(logs);
@@ -1442,7 +1480,7 @@ async function startServer() {
     console.log(`📱 Mobile Web App Access:  http://${localIp}:${PORT}`);
     console.log(`💻 Dedicated PC Admin Dashboard: http://localhost:${PORT}/admin`);
     console.log(`🗄️  Database Mode: PostgreSQL (pg pool) - Render Ready`);
-    console.log(`🔒 Security: JWT Auth + Bcrypt Hash + Atomic DB Transactions`);
+    console.log(`🔒 Security: Admins PostgreSQL Table + Bcrypt + JWT Middleware`);
     console.log(`======================================================\n`);
   });
 }
