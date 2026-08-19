@@ -14,6 +14,7 @@ if (databaseUrl) {
     connectionTimeoutMillis: 10000,
   };
 
+  // Enable SSL for remote cloud databases (Render, Supabase, Neon, AWS RDS, etc.)
   if (isProduction || databaseUrl.includes('render.com') || databaseUrl.includes('supabase') || databaseUrl.includes('neon') || databaseUrl.includes('sslmode=require')) {
     poolConfig.ssl = {
       rejectUnauthorized: false
@@ -26,15 +27,19 @@ if (databaseUrl) {
     console.error('Unexpected error on idle PostgreSQL client:', err.message);
   });
 } else {
-  console.warn('⚠️ WARNING: DATABASE_URL environment variable is not set.');
-  console.warn('ℹ️ Please configure DATABASE_URL in your Render environment or .env file.');
-  // Local fallback pool
-  pool = new Pool({
-    connectionString: 'postgresql://postgres:postgres@localhost:5432/roterpay',
-    max: 10,
-    connectionTimeoutMillis: 2000,
-  });
-  pool.on('error', () => {});
+  if (isProduction) {
+    console.error('❌ FATAL: DATABASE_URL environment variable is required in production. Please set DATABASE_URL on Render.');
+  } else {
+    console.warn('⚠️ WARNING: DATABASE_URL environment variable is not set.');
+    console.warn('ℹ️ Please configure DATABASE_URL in your .env file or Render dashboard.');
+    // Local development fallback
+    pool = new Pool({
+      connectionString: 'postgresql://postgres:postgres@localhost:5432/roterpay',
+      max: 10,
+      connectionTimeoutMillis: 2000,
+    });
+    pool.on('error', () => {});
+  }
 }
 
 // Automatic placeholder converter: replaces ? with $1, $2, $3...
@@ -56,10 +61,8 @@ const db = {
       const res = await pool.query(formattedSql, params);
       return res.rows || [];
     } catch (err) {
-      if (process.env.DATABASE_URL) {
-        console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
-      }
-      return [];
+      console.error('PostgreSQL queryAll error:', err.message, '| SQL:', sql);
+      throw err;
     }
   },
 
@@ -71,10 +74,8 @@ const db = {
       const res = await pool.query(formattedSql, params);
       return res.rows[0] || null;
     } catch (err) {
-      if (process.env.DATABASE_URL) {
-        console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
-      }
-      return null;
+      console.error('PostgreSQL queryOne error:', err.message, '| SQL:', sql);
+      throw err;
     }
   },
 
@@ -90,16 +91,14 @@ const db = {
         rows: res.rows
       };
     } catch (err) {
-      if (process.env.DATABASE_URL) {
-        console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
-      }
-      return { rowCount: 0, changes: 0, rows: [] };
+      console.error('PostgreSQL run error:', err.message, '| SQL:', sql);
+      throw err;
     }
   },
 
   // Execute multiple operations within an atomic PostgreSQL transaction
   async tx(callback) {
-    if (!pool) throw new Error('Database connection not available');
+    if (!pool) throw new Error('Database connection pool is not configured');
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -132,7 +131,12 @@ const db = {
 
 // Initialize All 11 PostgreSQL Tables & Seed Default Records
 async function initializeTables() {
-  if (!pool) return;
+  if (!pool) {
+    if (isProduction) {
+      throw new Error('DATABASE_URL environment variable is missing in production');
+    }
+    return;
+  }
   try {
     // 1. Users Table
     await pool.query(`
@@ -299,7 +303,7 @@ async function initializeTables() {
       );
     `);
 
-    // Create helpful performance indexes
+    // Performance Indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_claimed_lookup ON user_claimed_offers(userId, offerId, claimedDate);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(userId, timestamp DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposit_orders_user ON deposit_buy_orders(userId, timestamp DESC);`);
@@ -324,8 +328,9 @@ async function initializeTables() {
 
     console.log('✅ PostgreSQL Schema initialized successfully. All 11 tables verified.');
   } catch (err) {
-    if (process.env.DATABASE_URL) {
-      console.error('⚠️ PostgreSQL Schema initialization notice:', err.message);
+    console.error('⚠️ PostgreSQL Schema initialization error:', err.message);
+    if (isProduction) {
+      throw err;
     }
   }
 }

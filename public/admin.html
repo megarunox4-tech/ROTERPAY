@@ -890,6 +890,16 @@
         this.bindAuth();
         this.bindMenu();
         this.bindActions();
+
+        // Restore admin session if token exists
+        const savedToken = sessionStorage.getItem('fintech_admin_token');
+        if (savedToken) {
+          this.state.token = savedToken;
+          this.state.isAuthenticated = true;
+          document.getElementById('adminAuthScreen').style.display = 'none';
+          document.getElementById('adminShell').style.display = 'flex';
+          this.loadAll();
+        }
       },
 
       bindAuth() {
@@ -907,6 +917,11 @@
             if (!res.ok) throw new Error(data.error);
 
             this.state.isAuthenticated = true;
+            this.state.token = data.token;
+            if (data.token) {
+              sessionStorage.setItem('fintech_admin_token', data.token);
+            }
+
             document.getElementById('adminAuthScreen').style.display = 'none';
             document.getElementById('adminShell').style.display = 'flex';
             await this.loadAll();
@@ -917,6 +932,8 @@
 
         document.getElementById('btnLockAdmin').addEventListener('click', () => {
           this.state.isAuthenticated = false;
+          this.state.token = null;
+          sessionStorage.removeItem('fintech_admin_token');
           document.getElementById('adminAuthScreen').style.display = 'flex';
           document.getElementById('adminShell').style.display = 'none';
           document.getElementById('authPassword').value = '';
