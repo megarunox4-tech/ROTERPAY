@@ -1868,8 +1868,8 @@
           }
         });
 
-        // Validate admin session with live server check
-        const savedToken = sessionStorage.getItem('fintech_admin_token');
+        // Validate admin session with live server check (persistent localStorage)
+        const savedToken = localStorage.getItem('fintech_admin_token') || sessionStorage.getItem('fintech_admin_token');
         if (savedToken) {
           try {
             this.state.token = savedToken;
@@ -1882,8 +1882,13 @@
               const adminData = await res.json();
               this.state.isAuthenticated = true;
               this.state.admin = adminData;
+              localStorage.setItem('fintech_admin_token', savedToken);
+              sessionStorage.setItem('fintech_admin_token', savedToken);
               document.getElementById('adminAuthScreen').style.display = 'none';
               document.getElementById('adminShell').style.display = 'flex';
+              
+              // Push state to prevent back button from exiting
+              history.pushState({ admin: true }, '', window.location.pathname);
               await this.loadAll();
 
               // Auto-sync support threads & active conversation every 3 seconds
@@ -1904,6 +1909,7 @@
         // If no token or invalid/expired, ensure locked state
         this.state.isAuthenticated = false;
         this.state.token = null;
+        localStorage.removeItem('fintech_admin_token');
         sessionStorage.removeItem('fintech_admin_token');
         document.getElementById('adminAuthScreen').style.display = 'flex';
         document.getElementById('adminShell').style.display = 'none';
@@ -1914,7 +1920,7 @@
           'Content-Type': 'application/json',
           ...(options.headers || {})
         };
-        const token = this.state.token || sessionStorage.getItem('fintech_admin_token');
+        const token = this.state.token || localStorage.getItem('fintech_admin_token') || sessionStorage.getItem('fintech_admin_token');
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
@@ -1922,6 +1928,7 @@
         if (res.status === 401 || res.status === 403) {
           this.state.isAuthenticated = false;
           this.state.token = null;
+          localStorage.removeItem('fintech_admin_token');
           sessionStorage.removeItem('fintech_admin_token');
           document.getElementById('adminAuthScreen').style.display = 'flex';
           document.getElementById('adminShell').style.display = 'none';
@@ -1948,11 +1955,13 @@
             this.state.isAuthenticated = true;
             this.state.token = data.token;
             if (data.token) {
+              localStorage.setItem('fintech_admin_token', data.token);
               sessionStorage.setItem('fintech_admin_token', data.token);
             }
 
             document.getElementById('adminAuthScreen').style.display = 'none';
             document.getElementById('adminShell').style.display = 'flex';
+            history.pushState({ admin: true }, '', window.location.pathname);
             await this.loadAll();
 
             if (!this.syncInterval) {
@@ -1974,6 +1983,7 @@
           if (confirm('Are you sure you want to log out of the Admin Dashboard?')) {
             this.state.isAuthenticated = false;
             this.state.token = null;
+            localStorage.removeItem('fintech_admin_token');
             sessionStorage.removeItem('fintech_admin_token');
             document.getElementById('adminAuthScreen').style.display = 'flex';
             document.getElementById('adminShell').style.display = 'none';
@@ -1994,6 +2004,48 @@
           document.querySelector('.admin-sidebar')?.classList.remove('active');
           document.getElementById('sidebarOverlay')?.classList.remove('active');
         });
+
+        // Phone Hardware & Browser Back Button Handler (Prevents Unexpected Logout)
+        window.addEventListener('popstate', (e) => {
+          if (!this.state.isAuthenticated) return;
+
+          // 1. Close open modals or action sheets
+          const openSheet = document.getElementById('modalAdminPwaInstall');
+          if (openSheet && openSheet.style.display === 'flex') {
+            openSheet.style.display = 'none';
+            return;
+          }
+          const msgSheet = document.getElementById('adminMsgActionSheet');
+          if (msgSheet && msgSheet.style.display === 'flex') {
+            msgSheet.style.display = 'none';
+            return;
+          }
+
+          // 2. If in mobile chat thread view, go back to threads list
+          const messenger = document.getElementById('adminMessengerContainer');
+          if (messenger && messenger.classList.contains('show-chat')) {
+            messenger.classList.remove('show-chat');
+            this.state.activeSupportUserId = null;
+            return;
+          }
+
+          // 3. If sidebar is open, close it
+          const sidebar = document.querySelector('.admin-sidebar');
+          if (sidebar && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            document.getElementById('sidebarOverlay')?.classList.remove('active');
+            return;
+          }
+
+          // 4. Otherwise keep user inside admin overview
+          const activeTab = document.querySelector('.menu-item.active')?.getAttribute('data-tab');
+          if (activeTab && activeTab !== 'overview') {
+            const overviewMenu = document.querySelector('.menu-item[data-tab="overview"]');
+            if (overviewMenu) overviewMenu.click();
+          } else {
+            history.pushState({ admin: true }, '', window.location.pathname);
+          }
+        });
       },
 
       bindMenu() {
@@ -2010,6 +2062,7 @@
             });
 
             document.getElementById('pageTitleHeading').textContent = target.textContent.trim();
+            history.pushState({ tab: tabId }, '', window.location.pathname);
 
             if (window.innerWidth <= 1024) {
               document.querySelector('.admin-sidebar')?.classList.remove('active');
