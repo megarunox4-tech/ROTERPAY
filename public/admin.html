@@ -541,6 +541,38 @@
               <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
             </form>
           </div>
+
+          <!-- ADMIN CREDENTIALS & PASSWORD SECURITY CARD -->
+          <div class="card-panel margin-top-1" style="margin-top: 1.5rem; border: 1.5px solid var(--orange-border);">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-shield-halved text-orange"></i> Admin Account Security & Password</h3>
+            </div>
+            <form id="formChangeAdminPassword">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter current admin password" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                  <label>Admin Username (Optional / Editable)</label>
+                  <input type="text" id="adminNewUsername" class="form-control" placeholder="e.g. admin" autocomplete="username">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>New Password</label>
+                  <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new strong password" required minlength="4" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                  <label>Confirm New Password</label>
+                  <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" required minlength="4" autocomplete="new-password">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ff6600, #ea580c); font-weight: 800; font-size: 0.92rem;">
+                <i class="fa-solid fa-key"></i> Update Admin Password & Credentials
+              </button>
+            </form>
+          </div>
         </div>
 
         <!-- MODULE 6: LOGS -->
@@ -1701,6 +1733,35 @@
           alert('Platform settings saved successfully!');
           await this.loadRates();
           await this.loadOverview();
+        });
+
+        // Change Admin Password & Credentials Submit
+        document.getElementById('formChangeAdminPassword')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const currentPassword = document.getElementById('adminCurrPass').value;
+          const newUsername = document.getElementById('adminNewUsername').value;
+          const newPassword = document.getElementById('adminNewPass').value;
+          const confirmPassword = document.getElementById('adminConfirmPass').value;
+
+          if (newPassword !== confirmPassword) {
+            return alert('Error: New password and Confirm password do not match!');
+          }
+
+          try {
+            const res = await this.apiFetch('/api/admin/change-password', {
+              method: 'POST',
+              body: JSON.stringify({ currentPassword, newUsername, newPassword, confirmPassword })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              return alert(data.error || 'Failed to update admin password');
+            }
+            alert(data.message || 'Admin credentials updated successfully in PostgreSQL database!');
+            e.target.reset();
+            await this.loadLogs();
+          } catch (err) {
+            alert(err.message || 'Error updating admin password');
+          }
         });
 
         // CSV Exports

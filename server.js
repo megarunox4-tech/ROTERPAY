@@ -977,6 +977,54 @@ app.get('/api/admin/me', requireAdminAuth, async (req, res) => {
   }
 });
 
+// Protected Admin Change Password Endpoint
+app.post('/api/admin/change-password', requireAdminAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword, newUsername } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'New password and confirm password do not match' });
+    }
+
+    if (String(newPassword).length < 4) {
+      return res.status(400).json({ error: 'New password must be at least 4 characters long' });
+    }
+
+    const admin = await db.queryOne(`SELECT * FROM admins WHERE id = $1 LIMIT 1`, [req.admin.adminId]);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin record not found' });
+    }
+
+    const isMatch = await bcrypt.compare(String(currentPassword).trim(), admin.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const newHash = await bcrypt.hash(String(newPassword).trim(), 10);
+    const updatedUsername = (newUsername && newUsername.trim() !== '') ? newUsername.trim() : admin.username;
+
+    await db.run(
+      `UPDATE admins SET password_hash = $1, username = $2 WHERE id = $3`,
+      [newHash, updatedUsername, admin.id]
+    );
+
+    await logAudit('Admin Password Changed', `Admin "${admin.username}" changed credentials to username: "${updatedUsername}"`, req);
+
+    res.json({
+      success: true,
+      message: 'Admin credentials updated successfully in PostgreSQL database!',
+      username: updatedUsername
+    });
+  } catch (err) {
+    console.error('Change admin password error:', err.message);
+    res.status(500).json({ error: 'Database error updating admin password' });
+  }
+});
+
 // Protected Admin Overview
 app.get('/api/admin/overview', requireAdminAuth, async (req, res) => {
   try {
