@@ -134,30 +134,40 @@
     .modal-body { padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
     .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
 
-    /* RESPONSIVE DESIGN FOR MASTER ADMIN DASHBOARD */
-    .mobile-menu-btn { display: none; background: none; border: none; color: var(--text-dark); font-size: 1.4rem; cursor: pointer; margin-right: 12px; }
-    .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 99; }
+    /* RESPONSIVE DESIGN & MOBILE OPTIMIZATIONS */
+    .mobile-menu-btn { display: none; background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); font-size: 1.2rem; cursor: pointer; padding: 6px 10px; border-radius: 8px; margin-right: 10px; }
+    .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px); z-index: 99; transition: opacity 0.2s ease; }
     .sidebar-overlay.active { display: block; }
 
-    @media screen and (max-width: 992px) {
-      .admin-sidebar { left: -260px; transition: left 0.3s ease; }
-      .admin-sidebar.active { left: 0; z-index: 10000; }
-      .admin-main { margin-left: 0; width: 100%; }
-      .mobile-menu-btn { display: inline-flex; }
+    @media screen and (max-width: 1024px) {
+      .admin-sidebar { left: -280px; width: 280px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
+      .admin-sidebar.active { transform: translateX(280px); z-index: 10000; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+      .admin-main { margin-left: 0; width: 100%; min-width: 0; }
+      .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
       .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-      .admin-header { padding: 1rem; }
-      .content-body { padding: 1rem; }
+      .admin-header { padding: 0.85rem 1.25rem; }
+      .content-body { padding: 1.25rem; }
     }
 
-    @media screen and (max-width: 576px) {
-      .metrics-grid { grid-template-columns: 1fr; gap: 0.8rem; }
-      .form-grid-2 { grid-template-columns: 1fr; }
-      .header-title h1 { font-size: 1.2rem; }
+    @media screen and (max-width: 640px) {
+      .auth-box { width: 92%; padding: 2rem 1.25rem; }
+      .metrics-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+      .form-grid-2 { grid-template-columns: 1fr; gap: 8px; }
+      .header-title h1 { font-size: 1.15rem; }
       .status-badge { display: none; }
-      .panel-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      #currentDateDisplay { display: none; }
+      .admin-header { padding: 0.75rem 1rem; }
+      .header-right { gap: 8px; }
+      .content-body { padding: 0.85rem; }
+      .panel-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 1rem; }
       .panel-header > div { width: 100%; flex-wrap: wrap; }
       .panel-header input, .panel-header select { width: 100% !important; }
-      .modal-box { width: 95%; max-height: 90vh; }
+      .table th, .table td { padding: 10px 12px; font-size: 0.82rem; white-space: nowrap; }
+      .modal-box { width: 94%; max-height: 92vh; border-radius: 12px; }
+      .modal-body { padding: 1rem; }
+      .modal-footer { padding: 0.75rem 1rem; flex-direction: column-reverse; }
+      .modal-footer button { width: 100%; padding: 10px; }
+      .btn { padding: 7px 12px; font-size: 0.8rem; }
     }
   </style>
 </head>
@@ -203,7 +213,8 @@
         <li class="menu-header">Communications & Offers</li>
         <li class="menu-item" data-tab="notifications"><i class="fa-regular fa-bell"></i> Broadcast Notifications</li>
         <li class="menu-item" data-tab="offers"><i class="fa-solid fa-tags"></i> Payment Claim Offers</li>
-        <li class="menu-header">Platform Config</li>
+        <li class="menu-header">Security & Config</li>
+        <li class="menu-item" data-tab="security"><i class="fa-solid fa-key"></i> Admin Password & Security</li>
         <li class="menu-item" data-tab="rates"><i class="fa-solid fa-sliders"></i> System Rates & Settings</li>
         <li class="menu-item" data-tab="logs"><i class="fa-solid fa-shield-cat"></i> Security Audit Logs</li>
       </ul>
@@ -229,10 +240,13 @@
           </button>
           <h1 id="pageTitleHeading">Dashboard Overview</h1>
         </div>
-        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
-          <div class="status-badge"><span class="dot-live"></span> Master Admin Mode</div>
-          <span style="font-size:0.88rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay">14/08/2026</span>
-          <button id="btnHeaderLogout" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.35); padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
+        <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
+          <div class="status-badge"><span class="dot-live"></span> Master Admin</div>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted);" id="currentDateDisplay">14/08/2026</span>
+          <button id="btnHeaderSecurity" style="background: rgba(255, 102, 0, 0.12); color: var(--primary-orange); border: 1.5px solid rgba(255, 102, 0, 0.35); padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
+            <i class="fa-solid fa-key"></i> Password
+          </button>
+          <button id="btnHeaderLogout" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.35); padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
             <i class="fa-solid fa-right-from-bracket"></i> Logout
           </button>
         </div>
@@ -541,37 +555,50 @@
               <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
             </form>
           </div>
+        </div>
 
-          <!-- ADMIN CREDENTIALS & PASSWORD SECURITY CARD -->
-          <div class="card-panel margin-top-1" style="margin-top: 1.5rem; border: 1.5px solid var(--orange-border);">
-            <div class="panel-header">
-              <h3><i class="fa-solid fa-shield-halved text-orange"></i> Admin Account Security & Password</h3>
+        <!-- MODULE: DEDICATED ADMIN SECURITY & PASSWORD CHANGE -->
+        <div id="tab-security" class="tab-view">
+          <div class="card-panel" style="border: 2px solid var(--orange-border); box-shadow: 0 10px 30px rgba(255, 102, 0, 0.08);">
+            <div class="panel-header" style="background: #fff8f3;">
+              <div>
+                <h3 style="color: var(--primary-orange); display: flex; align-items: center; gap: 10px;">
+                  <i class="fa-solid fa-shield-halved"></i> Master Admin Password & Credentials Security
+                </h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">
+                  Update your administrator passcode and username stored securely in PostgreSQL.
+                </p>
+              </div>
             </div>
-            <form id="formChangeAdminPassword">
-              <div class="form-grid-2">
-                <div class="form-group">
-                  <label>Current Password</label>
-                  <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter current admin password" required autocomplete="current-password">
+            <div style="padding: 1.5rem;">
+              <form id="formChangeAdminPassword">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label style="font-weight: 700;">Current Admin Password <span style="color:#ef4444;">*</span></label>
+                    <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter current passcode" required autocomplete="current-password">
+                  </div>
+                  <div class="form-group">
+                    <label style="font-weight: 700;">Admin Username (Optional)</label>
+                    <input type="text" id="adminNewUsername" class="form-control" placeholder="Leave empty to keep existing" autocomplete="username">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Admin Username (Optional / Editable)</label>
-                  <input type="text" id="adminNewUsername" class="form-control" placeholder="e.g. admin" autocomplete="username">
+                <div class="form-grid-2" style="margin-top: 8px;">
+                  <div class="form-group">
+                    <label style="font-weight: 700;">New Admin Password <span style="color:#ef4444;">*</span></label>
+                    <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new strong password" required minlength="4" autocomplete="new-password">
+                  </div>
+                  <div class="form-group">
+                    <label style="font-weight: 700;">Confirm New Password <span style="color:#ef4444;">*</span></label>
+                    <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" required minlength="4" autocomplete="new-password">
+                  </div>
                 </div>
-              </div>
-              <div class="form-grid-2">
-                <div class="form-group">
-                  <label>New Password</label>
-                  <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new strong password" required minlength="4" autocomplete="new-password">
+                <div style="margin-top: 1.25rem;">
+                  <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6600, #ea580c); font-weight: 800; font-size: 1rem; border-radius: 10px; box-shadow: 0 4px 16px rgba(255, 102, 0, 0.3);">
+                    <i class="fa-solid fa-key"></i> Save & Apply New Admin Password
+                  </button>
                 </div>
-                <div class="form-group">
-                  <label>Confirm New Password</label>
-                  <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" required minlength="4" autocomplete="new-password">
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ff6600, #ea580c); font-weight: 800; font-size: 0.92rem;">
-                <i class="fa-solid fa-key"></i> Update Admin Password & Credentials
-              </button>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -1056,11 +1083,19 @@
 
             document.getElementById('pageTitleHeading').textContent = target.textContent.trim();
 
-            if (window.innerWidth <= 992) {
+            if (window.innerWidth <= 1024) {
               document.querySelector('.admin-sidebar')?.classList.remove('active');
               document.getElementById('sidebarOverlay')?.classList.remove('active');
             }
           });
+        });
+
+        // Quick Password Button in Header
+        document.getElementById('btnHeaderSecurity')?.addEventListener('click', () => {
+          const securityTab = document.querySelector(`.menu-item[data-tab="security"]`);
+          if (securityTab) {
+            securityTab.click();
+          }
         });
 
         // Restore saved admin tab on refresh
