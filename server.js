@@ -977,21 +977,13 @@ app.get('/api/admin/me', requireAdminAuth, async (req, res) => {
   }
 });
 
-// Protected Admin Change Password Endpoint
+// Protected Admin Change Credentials Endpoint (Username + Password)
 app.post('/api/admin/change-password', requireAdminAuth, async (req, res) => {
   try {
-    const { currentPassword, newPassword, confirmPassword, newUsername } = req.body;
+    const { currentPassword, newUsername, newPassword, confirmPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current password and new password are required' });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ error: 'New password and confirm password do not match' });
-    }
-
-    if (String(newPassword).length < 4) {
-      return res.status(400).json({ error: 'New password must be at least 4 characters long' });
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current admin password is required for security verification' });
     }
 
     const admin = await db.queryOne(`SELECT * FROM admins WHERE id = $1 LIMIT 1`, [req.admin.adminId]);
@@ -1004,24 +996,56 @@ app.post('/api/admin/change-password', requireAdminAuth, async (req, res) => {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    const newHash = await bcrypt.hash(String(newPassword).trim(), 10);
-    const updatedUsername = (newUsername && newUsername.trim() !== '') ? newUsername.trim() : admin.username;
+    let finalPasswordHash = admin.password_hash;
+    let passwordChanged = false;
+
+    if (newPassword && newPassword.trim() !== '') {
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ error: 'New password and confirm password do not match' });
+      }
+      if (String(newPassword).length < 4) {
+        return res.status(400).json({ error: 'New password must be at least 4 characters long' });
+      }
+      finalPasswordHash = await bcrypt.hash(String(newPassword).trim(), 10);
+      passwordChanged = true;
+    }
+
+    let finalUsername = admin.username;
+    let usernameChanged = false;
+
+    if (newUsername && newUsername.trim() !== '' && newUsername.trim() !== admin.username) {
+      const trimmedUser = newUsername.trim();
+      const existing = await db.queryOne(`SELECT id FROM admins WHERE username = $1 AND id != $2 LIMIT 1`, [trimmedUser, admin.id]);
+      if (existing) {
+        return res.status(400).json({ error: `Username "${trimmedUser}" is already taken by another admin` });
+      }
+      finalUsername = trimmedUser;
+      usernameChanged = true;
+    }
+
+    if (!passwordChanged && !usernameChanged) {
+      return res.status(400).json({ error: 'Please provide a new username or new password to update' });
+    }
 
     await db.run(
       `UPDATE admins SET password_hash = $1, username = $2 WHERE id = $3`,
-      [newHash, updatedUsername, admin.id]
+      [finalPasswordHash, finalUsername, admin.id]
     );
 
-    await logAudit('Admin Password Changed', `Admin "${admin.username}" changed credentials to username: "${updatedUsername}"`, req);
+    const changesSummary = [];
+    if (usernameChanged) changesSummary.push(`username to "${finalUsername}"`);
+    if (passwordChanged) changesSummary.push('password');
+
+    await logAudit('Admin Credentials Updated', `Admin "${admin.username}" updated ${changesSummary.join(' and ')}`, req);
 
     res.json({
       success: true,
-      message: 'Admin credentials updated successfully in PostgreSQL database!',
-      username: updatedUsername
+      message: `Admin ${changesSummary.join(' and ')} updated successfully in PostgreSQL database!`,
+      username: finalUsername
     });
   } catch (err) {
-    console.error('Change admin password error:', err.message);
-    res.status(500).json({ error: 'Database error updating admin password' });
+    console.error('Change admin credentials error:', err.message);
+    res.status(500).json({ error: 'Database error updating admin credentials' });
   }
 });
 

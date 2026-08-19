@@ -562,46 +562,72 @@
           </div>
         </div>
 
-        <!-- MODULE: DEDICATED ADMIN SECURITY & PASSWORD CHANGE -->
+        <!-- MODULE: DEDICATED ADMIN SECURITY & CREDENTIALS (USERNAME + PASSWORD) CHANGE -->
         <div id="tab-security" class="tab-view">
-          <div class="card-panel" style="border: 2px solid var(--orange-border); box-shadow: 0 10px 30px rgba(255, 102, 0, 0.08);">
-            <div class="panel-header" style="background: #fff8f3;">
+          <div class="card-panel" style="border: 2px solid var(--orange-border); box-shadow: 0 10px 30px rgba(255, 102, 0, 0.08); max-width: 800px; margin: 0 auto 2rem auto;">
+            <div class="panel-header" style="background: linear-gradient(135deg, #fff8f3, #ffffff); border-bottom: 1.5px solid var(--orange-border);">
               <div>
-                <h3 style="color: var(--primary-orange); display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-solid fa-shield-halved"></i> Master Admin Password & Credentials Security
+                <h3 style="color: var(--primary-orange); display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+                  <i class="fa-solid fa-user-shield"></i> Master Admin Profile & Credentials
                 </h3>
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">
-                  Update your administrator passcode and username stored securely in PostgreSQL.
+                <p style="font-size: 0.84rem; color: var(--text-muted); margin-top: 4px;">
+                  Change your Administrator Username (Login ID) and Password stored securely in PostgreSQL.
                 </p>
               </div>
             </div>
-            <div style="padding: 1.5rem;">
+            <div style="padding: 1.75rem;">
               <form id="formChangeAdminPassword">
+                
+                <!-- CURRENT SECURITY VERIFICATION -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 1.5rem;">
+                  <label style="font-weight: 800; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 6px;">
+                    <i class="fa-solid fa-lock text-orange"></i> Current Admin Password <span style="color:#ef4444;">*</span>
+                  </label>
+                  <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter your current admin password to authorize changes" required autocomplete="current-password" style="background:#fff;">
+                  <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Required for security verification before making any credential updates.</span>
+                </div>
+
                 <div class="form-grid-2">
-                  <div class="form-group">
-                    <label style="font-weight: 700;">Current Admin Password <span style="color:#ef4444;">*</span></label>
-                    <input type="password" id="adminCurrPass" class="form-control" placeholder="Enter current passcode" required autocomplete="current-password">
+                  <!-- ADMIN USERNAME / NAME CHANGE -->
+                  <div style="background: #fff; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 1rem;">
+                    <label style="font-weight: 800; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 6px;">
+                      <i class="fa-solid fa-user text-orange"></i> Admin Username / Login Name
+                    </label>
+                    <input type="text" id="adminNewUsername" class="form-control" placeholder="Enter new admin username (e.g. admin)" autocomplete="username">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Enter new admin username to change login ID.</span>
                   </div>
-                  <div class="form-group">
-                    <label style="font-weight: 700;">Admin Username (Optional)</label>
-                    <input type="text" id="adminNewUsername" class="form-control" placeholder="Leave empty to keep existing" autocomplete="username">
+
+                  <!-- ACTIVE ROLE BADGE -->
+                  <div style="background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 1rem; display: flex; flex-direction: column; justify-content: center;">
+                    <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Current Admin Role</span>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                      <span class="badge badge-success" style="font-size: 0.85rem; padding: 6px 14px;"><i class="fa-solid fa-crown"></i> Master Administrator</span>
+                      <span class="status-badge" style="display: inline-flex;"><span class="dot-live"></span> PostgreSQL Active</span>
+                    </div>
                   </div>
                 </div>
-                <div class="form-grid-2" style="margin-top: 8px;">
-                  <div class="form-group">
-                    <label style="font-weight: 700;">New Admin Password <span style="color:#ef4444;">*</span></label>
-                    <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new strong password" required minlength="4" autocomplete="new-password">
+
+                <!-- NEW PASSWORD SECTION -->
+                <div style="background: #fff; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 1.5rem;">
+                  <span style="font-weight: 800; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 10px;">
+                    <i class="fa-solid fa-key text-orange"></i> Change Password (Optional)
+                  </span>
+                  <div class="form-grid-2">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-weight: 700; font-size: 0.82rem;">New Password</label>
+                      <input type="password" id="adminNewPass" class="form-control" placeholder="Enter new password (min 4 chars)" minlength="4" autocomplete="new-password">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-weight: 700; font-size: 0.82rem;">Confirm New Password</label>
+                      <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" minlength="4" autocomplete="new-password">
+                    </div>
                   </div>
-                  <div class="form-group">
-                    <label style="font-weight: 700;">Confirm New Password <span style="color:#ef4444;">*</span></label>
-                    <input type="password" id="adminConfirmPass" class="form-control" placeholder="Re-enter new password" required minlength="4" autocomplete="new-password">
-                  </div>
+                  <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; display: block;">Leave password blank if you only wish to change your Admin Username.</span>
                 </div>
-                <div style="margin-top: 1.25rem;">
-                  <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6600, #ea580c); font-weight: 800; font-size: 1rem; border-radius: 10px; box-shadow: 0 4px 16px rgba(255, 102, 0, 0.3);">
-                    <i class="fa-solid fa-key"></i> Save & Apply New Admin Password
-                  </button>
-                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6600, #ea580c); font-weight: 800; font-size: 1rem; border-radius: 12px; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); cursor: pointer;">
+                  <i class="fa-solid fa-floppy-disk"></i> Save Admin Username & Password Changes
+                </button>
               </form>
             </div>
           </div>
@@ -1787,7 +1813,7 @@
           const newPassword = document.getElementById('adminNewPass').value;
           const confirmPassword = document.getElementById('adminConfirmPass').value;
 
-          if (newPassword !== confirmPassword) {
+          if (newPassword && newPassword !== confirmPassword) {
             return alert('Error: New password and Confirm password do not match!');
           }
 
@@ -1798,13 +1824,18 @@
             });
             const data = await res.json();
             if (!res.ok) {
-              return alert(data.error || 'Failed to update admin password');
+              return alert(data.error || 'Failed to update admin credentials');
             }
             alert(data.message || 'Admin credentials updated successfully in PostgreSQL database!');
-            e.target.reset();
+            if (data.username) {
+              document.getElementById('adminNewUsername').value = data.username;
+            }
+            document.getElementById('adminCurrPass').value = '';
+            document.getElementById('adminNewPass').value = '';
+            document.getElementById('adminConfirmPass').value = '';
             await this.loadLogs();
           } catch (err) {
-            alert(err.message || 'Error updating admin password');
+            alert(err.message || 'Error updating admin credentials');
           }
         });
 
