@@ -512,9 +512,15 @@
                 <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Dynamic UPI QR code automatically calculates user deposit amount.</span>
               </div>
 
-              <div class="form-group">
-                <label>App Version String</label>
-                <input type="text" id="appVersionInput" class="form-control" value="v1.1.9">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>App Version String</label>
+                  <input type="text" id="appVersionInput" class="form-control" value="v1.1.9">
+                </div>
+                <div class="form-group">
+                  <label>App Download File URL / Path</label>
+                  <input type="text" id="appDownloadUrlInput" class="form-control" value="/downloads/fintech-hub.apk" placeholder="e.g. /downloads/fintech-hub.apk">
+                </div>
               </div>
 
               <button type="submit" class="btn btn-primary margin-top-1" style="width: 100%; padding: 12px;">Save Platform Settings</button>
@@ -931,6 +937,7 @@
             const target = e.currentTarget;
             target.classList.add('active');
             const tabId = target.getAttribute('data-tab');
+            localStorage.setItem('fintech_admin_active_tab', tabId);
 
             document.querySelectorAll('.tab-view').forEach(v => {
               v.classList.toggle('active', v.id === `tab-${tabId}`);
@@ -944,6 +951,15 @@
             }
           });
         });
+
+        // Restore saved admin tab on refresh
+        const savedTab = localStorage.getItem('fintech_admin_active_tab');
+        if (savedTab) {
+          const targetMenu = document.querySelector(`.menu-item[data-tab="${savedTab}"]`);
+          if (targetMenu) {
+            targetMenu.click();
+          }
+        }
       },
 
       async loadAll() {
@@ -1350,6 +1366,7 @@
         if (document.getElementById('rateAdminUpiId')) document.getElementById('rateAdminUpiId').value = stats.adminUpiId || '8104229900@upi';
         if (document.getElementById('rateMerchantName')) document.getElementById('rateMerchantName').value = stats.merchantName || 'Fintech Hub';
         if (document.getElementById('appVersionInput')) document.getElementById('appVersionInput').value = stats.appVersion || 'v1.1.9';
+        if (document.getElementById('appDownloadUrlInput')) document.getElementById('appDownloadUrlInput').value = stats.appDownloadUrl || '/downloads/fintech-hub.apk';
         
         const previewUpi = stats.adminUpiId || '8104229900@upi';
         const previewName = stats.merchantName || 'Fintech Hub';
@@ -1590,11 +1607,12 @@
           const adminUpiId = document.getElementById('rateAdminUpiId')?.value || '8104229900@upi';
           const merchantName = document.getElementById('rateMerchantName')?.value || 'Fintech Hub';
           const appVersion = document.getElementById('appVersionInput').value;
+          const appDownloadUrl = document.getElementById('appDownloadUrlInput')?.value || '/downloads/fintech-hub.apk';
 
           await fetch('/api/admin/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exchangeRate, scoreRate, commissionRate, specialRewardActive, maintenanceMode, isSellingOpen, adminUpiId, merchantName, appVersion })
+            body: JSON.stringify({ exchangeRate, scoreRate, commissionRate, specialRewardActive, maintenanceMode, isSellingOpen, adminUpiId, merchantName, appVersion, appDownloadUrl })
           });
 
           alert('Platform settings saved successfully!');

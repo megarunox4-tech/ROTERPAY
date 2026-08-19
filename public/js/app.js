@@ -350,6 +350,25 @@ const FintechApp = {
     document.getElementById('usdtBonusPreview').textContent = `${(inputVal * 0.05).toFixed(2)} Score`;
   },
 
+  openScoreDetailView() {
+    const user = this.state.currentUser || { balance: 0, deposit: 0, withdrawal: 0, commission: 0 };
+    if (document.getElementById('mdlBal')) document.getElementById('mdlBal').textContent = (user.balance || 0).toFixed(2);
+    if (document.getElementById('mdlDep')) document.getElementById('mdlDep').textContent = (user.deposit || 0).toFixed(2);
+    if (document.getElementById('mdlWith')) document.getElementById('mdlWith').textContent = (user.withdrawal || 0).toFixed(2);
+    if (document.getElementById('mdlComm')) document.getElementById('mdlComm').textContent = (user.commission || 0).toFixed(2);
+    document.getElementById('modalBalanceDetail')?.classList.add('active');
+  },
+
+  selectFixedUsdt(val, btn) {
+    document.querySelectorAll('.btn-preset-chip').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const input = document.getElementById('usdtCalcInput');
+    if (input) {
+      input.value = val;
+      this.calcUsdtReceive();
+    }
+  },
+
   selectChainType(chain) {
     this.state.selectedChain = chain;
     document.getElementById('chainCardTRC20')?.classList.toggle('selected', chain === 'TRC20');
@@ -375,14 +394,6 @@ const FintechApp = {
       navigator.clipboard.writeText(text);
       this.showToast(`${label} copied to clipboard!`, 'success');
     }
-  },
-
-  async init() {
-    this.bindAppNavigation();
-    this.bindAppEvents();
-    await this.restoreSession();
-    await this.loadAllAppData();
-    setInterval(() => this.pollLiveUpdates(), 2000);
   },
 
   showAuthOverlay() {
@@ -577,6 +588,20 @@ const FintechApp = {
         </div>
       `;
     }).join('');
+  },
+
+  selectFixedAmount(type, val, btn) {
+    if (type === 'sell') {
+      const input = document.getElementById('sellAmountInput');
+      if (input) input.value = val;
+      document.querySelectorAll('#formSellOrderCreate .btn-preset-chip').forEach(c => c.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    } else {
+      const input = document.getElementById('depAmountInput');
+      if (input) input.value = val;
+      document.querySelectorAll('#formDepositBuyOrder .btn-preset-chip').forEach(c => c.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
   },
 
   async handleCreateSellOrder(e) {
@@ -1154,7 +1179,8 @@ const FintechApp = {
   },
 
   async loadOffers() {
-    const res = await fetch('/api/payment/offers');
+    const userId = this.state.currentUser ? this.state.currentUser.id : '';
+    const res = await fetch(`/api/payment/offers?userId=${userId}`);
     const offers = await res.json();
     this.state.offers = offers;
     this.renderOffers();
@@ -1296,7 +1322,13 @@ const FintechApp = {
         </div>
         <div class="offer-right" style="text-align: right;">
           <div class="offer-code" style="margin-bottom: 8px;">Code: ${o.code}</div>
-          <button class="btn-orange-pill btn-claim-offer" data-id="${o.id}">Claim</button>
+          ${o.isClaimedToday ? `
+            <button class="btn-orange-pill" disabled style="background:#e2e8f0; color:#64748b; cursor:not-allowed; box-shadow:none; padding:6px 14px; font-weight:800; border-radius:20px;">
+              <i class="fa-solid fa-check"></i> Claimed
+            </button>
+          ` : `
+            <button class="btn-orange-pill btn-claim-offer" data-id="${o.id}">Claim</button>
+          `}
         </div>
       </div>
     `).join('');
@@ -1679,9 +1711,26 @@ const FintechApp = {
     });
   },
 
+  openDownloadAppModal() {
+    const modal = document.getElementById('modalDownloadApp');
+    if (modal) {
+      const ver = this.state.stats?.appVersion || 'v1.1.9';
+      const dlUrl = this.state.stats?.appDownloadUrl || '/downloads/fintech-hub.apk';
+      const verEl = document.getElementById('mdlAppVersion');
+      if (verEl) verEl.textContent = ver;
+      const dlBtn = document.getElementById('btnDirectDownloadApk');
+      if (dlBtn) dlBtn.href = dlUrl;
+      modal.classList.add('active');
+    }
+  },
+
   async claimOffer(offerId) {
     const userId = this.state.currentUser ? this.state.currentUser.id : '';
-    if (!userId) return this.showToast('Please sign in first', 'danger');
+    if (!userId) {
+      this.showToast('Please sign in first to claim cashback offers!', 'danger');
+      this.showLogin();
+      return;
+    }
     try {
       const res = await fetch('/api/payment/claim', {
         method: 'POST',
@@ -1691,7 +1740,7 @@ const FintechApp = {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      this.showToast(`Claimed! Earned ₹ ${data.earned.toFixed(2)} commission & +50 Score Points!`, 'success');
+      this.showToast(`🎉 Offer Claimed! +₹ ${data.earned.toFixed(2)} Commission & +50 Score Points added to wallet!`, 'success');
       await this.loadAllAppData();
     } catch (err) {
       this.showToast(err.message, 'danger');

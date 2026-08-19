@@ -332,6 +332,25 @@
             </div>
           </div>
 
+          <!-- App Download Quick Banner (Orange Theme with Official Brand Logo) -->
+          <div class="app-download-banner-card" onclick="FintechApp.openDownloadAppModal()" style="cursor: pointer; background: linear-gradient(135deg, #ff6600, #ff8800); border-radius: 18px; padding: 14px 16px; color: #ffffff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; box-shadow: var(--shadow-orange); border: 1.5px solid rgba(255, 255, 255, 0.2); transition: transform 0.2s ease;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 46px; height: 46px; border-radius: 14px; background: #ffffff; color: var(--primary-orange); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); border: 2px solid #ffe3d1; flex-shrink: 0;">
+                <i class="fa-solid fa-wallet"></i>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <strong style="font-size: 0.98rem; font-family: var(--font-heading); font-weight: 900; letter-spacing: 0.3px;">FINTECH HUB</strong>
+                  <span style="background: rgba(255, 255, 255, 0.25); font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 8px;">OFFICIAL APP</span>
+                </div>
+                <span style="font-size: 0.76rem; opacity: 0.95; font-weight: 600; display: block; margin-top: 1px;"><i class="fa-brands fa-android"></i> Android APK v1.1.9 • 8.4 MB</span>
+              </div>
+            </div>
+            <button type="button" class="btn-download-pill" style="background: #ffffff; color: var(--primary-orange); font-weight: 800; font-size: 0.82rem; padding: 7px 15px; border-radius: 20px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+              <i class="fa-solid fa-download"></i> Get APK
+            </button>
+          </div>
+
           <!-- Transactions Card -->
           <div class="card transactions-card">
             <div class="card-header-flex">
@@ -1218,6 +1237,11 @@
                 <div class="asset-action-box"><i class="fa-solid fa-shield-halved"></i></div>
                 <span>Pin</span>
               </div>
+
+              <div class="asset-action-item" id="btnAssetDownload" style="cursor: pointer;" onclick="FintechApp.openDownloadAppModal()">
+                <div class="asset-action-box" style="background: linear-gradient(135deg, #ff6600, #ff8800); color: #ffffff; box-shadow: 0 4px 10px rgba(255, 102, 0, 0.2);"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                <span>Download App</span>
+              </div>
             </div>
 
             <div class="app-version-label" id="appVersionDisplay">v1.1.9</div>
@@ -1447,6 +1471,8 @@
               </div>
             </div>
           </div>
+        </section>
+
         <!-- TAB 9: DEDICATED FULL-PAGE DEPOSIT PAYMENT VIEW -->
         <section id="tab-deposit-payment" class="app-tab-view">
           <div style="padding: 0.5rem 0;">
@@ -1723,6 +1749,52 @@
       <div class="modal-footer" style="gap: 6px;">
         <input type="text" id="chatInput" class="form-control" placeholder="Type message..." style="flex: 1;">
         <button class="btn btn-orange" id="btnSendChat">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP DOWNLOAD MODAL DIALOG (ORANGE THEME WITH OFFICIAL BRAND LOGO) -->
+  <div class="modal-backdrop" id="modalDownloadApp">
+    <div class="modal" style="max-width: 420px; border-radius: 24px; overflow: hidden; border: 2px solid var(--orange-border); box-shadow: 0 20px 50px rgba(255, 102, 0, 0.2);">
+      <div style="background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; padding: 1.6rem 1.25rem 1.4rem; text-align: center; position: relative;">
+        <button class="modal-close" data-close="modalDownloadApp" style="position: absolute; right: 14px; top: 12px; color: #ffffff; background: rgba(0,0,0,0.2); width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+        
+        <!-- Official Brand Logo -->
+        <div style="width: 72px; height: 72px; border-radius: 22px; background: #ffffff; color: var(--primary-orange); display: inline-flex; align-items: center; justify-content: center; font-size: 2.3rem; margin-bottom: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.18); border: 2px solid #ffe3d1;">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+        
+        <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; margin: 0; letter-spacing: 0.3px;">FINTECH HUB</h3>
+        <p style="font-size: 0.82rem; opacity: 0.95; margin-top: 4px;">Official Mobile App • Version <span id="mdlAppVersion" style="font-weight:800; background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:6px;">v1.1.9</span></p>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem 1.25rem; text-align: center; background: #ffffff;">
+        
+        <!-- App Benefits Pill Row (Orange Palette) -->
+        <div style="display: flex; justify-content: space-around; background: var(--orange-light); border: 1px solid var(--orange-border); border-radius: 14px; padding: 10px; margin-bottom: 1.25rem;">
+          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
+            <i class="fa-solid fa-shield-halved"></i> 100% Secure
+          </div>
+          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
+            <i class="fa-solid fa-bolt"></i> Instant P2P
+          </div>
+          <div style="font-size: 0.75rem; color: var(--primary-orange); font-weight: 800;">
+            <i class="fa-brands fa-android"></i> 8.4 MB APK
+          </div>
+        </div>
+
+        <!-- Download APK Direct Button (Orange Gradient) -->
+        <a id="btnDirectDownloadApk" href="/downloads/fintech-hub.apk" download="fintech-hub.apk" class="btn-orange-deposit-large" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; text-decoration: none; border-radius: 30px; padding: 14px 20px; font-size: 1.05rem; font-weight: 800; box-shadow: var(--shadow-orange); margin-bottom: 1rem;">
+          <i class="fa-solid fa-download" style="font-size: 1.2rem;"></i> Download Android APK
+        </a>
+
+        <!-- Web App / iOS Prompt -->
+        <div style="background: var(--bg-page); border: 1px solid var(--orange-border); border-radius: 14px; padding: 10px 14px; font-size: 0.78rem; color: var(--text-medium); line-height: 1.4; text-align: left; margin-bottom: 1rem;">
+          <strong><i class="fa-brands fa-apple text-orange"></i> iPhone / Web App:</strong>
+          Tap browser menu <i class="fa-solid fa-arrow-up-from-bracket"></i> -> Select <strong>"Add to Home Screen"</strong> to use as app instantly!
+        </div>
+
+        <button type="button" class="btn btn-secondary width-100" data-close="modalDownloadApp" style="border-radius: 20px; padding: 10px; font-weight: 700;">Close</button>
       </div>
     </div>
   </div>
