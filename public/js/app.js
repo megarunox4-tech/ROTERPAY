@@ -57,6 +57,7 @@ const FintechApp = {
   },
 
   async init() {
+    this.initPwa();
     this.bindAppNavigation();
     this.bindAppEvents();
     await this.restoreSession();
@@ -1709,6 +1710,35 @@ const FintechApp = {
         document.getElementById(id)?.classList.remove('active');
       });
     });
+  },
+
+  deferredPrompt: null,
+
+  initPwa() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  },
+
+  async installPwaApp() {
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      const { outcome } = await this.deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        this.showToast('🎉 Fintech Hub App installed on your phone!', 'success');
+        document.getElementById('modalDownloadApp')?.classList.remove('active');
+      }
+      this.deferredPrompt = null;
+    } else {
+      alert('📱 How to install Fintech Hub App on your Mobile:\n\n1. In Chrome / Android: Tap the 3 dots (⋮) top right and select "Install app" or "Add to Home screen".\n\n2. In iPhone / Safari: Tap the Share button (⬆️) and select "Add to Home Screen".\n\nThis installs the full app directly to your home screen with no parsing errors!');
+    }
   },
 
   openDownloadAppModal() {

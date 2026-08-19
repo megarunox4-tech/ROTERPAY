@@ -19,6 +19,14 @@
   <!-- QRCode JS Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <!-- Mobile PWA Meta & Manifest -->
+  <meta name="theme-color" content="#ff6600">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FintechHub">
+  <link rel="manifest" href="/manifest.json">
+
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 
@@ -1783,15 +1791,21 @@
           </div>
         </div>
 
-        <!-- Download APK Direct Button (Orange Gradient) -->
-        <a id="btnDirectDownloadApk" href="/downloads/fintech-hub.apk" download="fintech-hub.apk" class="btn-orange-deposit-large" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; text-decoration: none; border-radius: 30px; padding: 14px 20px; font-size: 1.05rem; font-weight: 800; box-shadow: var(--shadow-orange); margin-bottom: 1rem;">
-          <i class="fa-solid fa-download" style="font-size: 1.2rem;"></i> Download Android APK
+        <!-- Option 1: 1-Tap Instant Mobile App Install (PWA Native - No Parsing Errors) -->
+        <button type="button" id="btnPwaInstallApp" onclick="FintechApp.installPwaApp()" class="btn-orange-deposit-large" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #ff6600, #e65c00); color: #ffffff; text-decoration: none; border-radius: 30px; padding: 14px 20px; font-size: 1.05rem; font-weight: 800; box-shadow: var(--shadow-orange); margin-bottom: 0.75rem; width: 100%; border: none; cursor: pointer;">
+          <i class="fa-solid fa-mobile-screen-button" style="font-size: 1.2rem;"></i> ⚡ Install App (Instant 1-Tap)
+        </button>
+
+        <!-- Option 2: Download APK File (Direct) -->
+        <a id="btnDirectDownloadApk" href="/downloads/fintech-hub.apk" download="fintech-hub.apk" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 24px; padding: 10px; font-size: 0.88rem; font-weight: 700; color: var(--text-medium); text-decoration: none; margin-bottom: 1rem; border: 1px solid var(--orange-border); background: var(--orange-light);">
+          <i class="fa-brands fa-android text-orange"></i> Download APK Package File
         </a>
 
-        <!-- Web App / iOS Prompt -->
-        <div style="background: var(--bg-page); border: 1px solid var(--orange-border); border-radius: 14px; padding: 10px 14px; font-size: 0.78rem; color: var(--text-medium); line-height: 1.4; text-align: left; margin-bottom: 1rem;">
-          <strong><i class="fa-brands fa-apple text-orange"></i> iPhone / Web App:</strong>
-          Tap browser menu <i class="fa-solid fa-arrow-up-from-bracket"></i> -> Select <strong>"Add to Home Screen"</strong> to use as app instantly!
+        <!-- Web App / iOS & Android Quick Guide -->
+        <div style="background: var(--bg-page); border: 1px solid var(--orange-border); border-radius: 14px; padding: 12px 14px; font-size: 0.78rem; color: var(--text-medium); line-height: 1.45; text-align: left; margin-bottom: 1rem;">
+          <strong style="color:var(--primary-orange); display:block; margin-bottom:3px;"><i class="fa-solid fa-circle-info"></i> How to Install on Mobile:</strong>
+          • <strong>Chrome / Android:</strong> Tap <strong>"Install App (Instant 1-Tap)"</strong> or browser menu (⋮) ➔ <strong>"Install app / Add to Home screen"</strong>.<br>
+          • <strong>iPhone (Safari):</strong> Tap Share <i class="fa-solid fa-arrow-up-from-bracket"></i> ➔ <strong>"Add to Home Screen"</strong>.
         </div>
 
         <button type="button" class="btn btn-secondary width-100" data-close="modalDownloadApp" style="border-radius: 20px; padding: 10px; font-weight: 700;">Close</button>
